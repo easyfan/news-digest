@@ -1,0 +1,43 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "news-digest",
+  "description": "Multi-source AI news digest with intelligent learning layer",
+  "owner": {
+    "name": "cc-meta-project"
+  },
+  "metadata": {
+    "description": "Fetches and summarizes AI tech news from 11 sources (HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, GitHub Watch, OpenClaw, ClawHub), with an optional learning layer that analyzes relevant items against your platform's capabilities and recommends adoption strategies."
+  },
+  "plugins": [
+    {
+      "name": "news-digest",
+      "source": "./",
+      "description": "1 command (/news-digest) + 1 agent (news-learner). Covers HN / arXiv / HuggingFace Daily Papers / GitHub Trending / Anthropic / OpenAI / Reddit / LangChain / GitHub Watch / OpenClaw / ClawHub. Smart learning layer auto-analyzes relevant items and outputs [Priority Adopt] / [Adopt] / [Learn] / [Skip] recommendations.",
+      "version": "1.1.0",
+      "author": {
+        "name": "cc-meta-project"
+      },
+      "homepage": "https://github.com/easyfan/news-digest",
+      "repository": "https://github.com/easyfan/news-digest",
+      "license": "MIT",
+      "keywords": [
+        "news",
+        "ai-news",
+        "digest",
+        "learning",
+        "hacker-news",
+        "arxiv",
+        "github-trending"
+      ],
+      "category": "workflow",
+      "tags": [
+        "news",
+        "digest",
+        "learning",
+        "automation",
+        "research"
+      ],
+      "strict": false
+    }
+  ]
+}

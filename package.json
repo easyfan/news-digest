@@ -1,0 +1,52 @@
+{
+  "name": "news-digest-cc",
+  "version": "1.1.0",
+  "description": "Multi-source AI news digest for Claude Code — fetches HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, OpenClaw, ClawHub with intelligent learning layer",
+  "keywords": [
+    "claude-code",
+    "ai",
+    "news",
+    "digest",
+    "agents",
+    "skills",
+    "hacker-news",
+    "arxiv",
+    "github-trending",
+    "anthropic",
+    "openai",
+    "huggingface",
+    "learning",
+    "automation",
+    "workflow"
+  ],
+  "author": {
+    "name": "cc-meta-project"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/easyfan/news-digest.git"
+  },
+  "homepage": "https://github.com/easyfan/news-digest#readme",
+  "bugs": {
+    "url": "https://github.com/easyfan/news-digest/issues"
+  },
+  "files": [
+    ".claude-plugin/",
+    "agents/",
+    "commands/",
+    "SKILL.md",
+    "AGENTS.md",
+    "install.sh",
+    "install.ps1"
+  ],
+  "bin": {
+    "news-digest-install": "install.sh"
+  },
+  "scripts": {
+    "postinstall": "echo '\\n  news-digest-cc installed!\\n  Run: npx news-digest-install\\n  Or copy manually:\\n    cp commands/news-digest.md ~/.claude/commands/\\n    cp agents/news-learner.md  ~/.claude/agents/\\n'"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

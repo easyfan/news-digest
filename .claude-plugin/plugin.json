@@ -1,0 +1,23 @@
+{
+  "name": "news-digest",
+  "version": "1.1.0",
+  "description": "Multi-source AI news digest with intelligent learning layer — fetches HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, OpenClaw, ClawHub and summarizes with Claude",
+  "author": {
+    "name": "cc-meta-project"
+  },
+  "homepage": "https://github.com/easyfan/news-digest",
+  "repository": "https://github.com/easyfan/news-digest",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "news",
+    "ai-news",
+    "digest",
+    "learning",
+    "hacker-news",
+    "arxiv",
+    "github-trending",
+    "workflow",
+    "automation"
+  ]
+}
