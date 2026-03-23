@@ -1,6 +1,6 @@
 ---
-description: 从 HN/arXiv/GitHub/Anthropic/OpenAI/HuggingFace/Reddit/LangChain/GitHub_Watch/OpenClaw/ClawHub 抓取并摘要 AI 技术新闻，可按关键词过滤；支持智能学习层分析
-argument-hint: "[topics...] [--sources hn,arxiv,github,anthropic,openai,hf,reddit,langchain,github_watch,openclaw,clawhub] [--limit N] [--no-learn]"
+description: 从多平台（HN/arXiv/GitHub 等）抓取 AI 技术新闻并生成摘要，支持关键词过滤和智能学习层分析
+argument-hint: "[topics...] [--sources SOURCE,...] [--limit N] [--no-learn] [--channel cli]"
 allowed-tools: ["Bash", "Agent"]
 ---
 # /news-digest
@@ -23,6 +23,7 @@ allowed-tools: ["Bash", "Agent"]
 | `topics` | 关键词过滤（空格分隔，OR 逻辑；多词匹配任意一词即保留，不支持 AND 语义） | 无（全量） |
 | `--sources` | 逗号分隔：`hn` `arxiv` `github` `anthropic` `openai` `hf` `reddit` `langchain` `github_watch` `openclaw` `clawhub` | 全部 |
 | `--limit` | 每源最多展示条目数 | 5 |
+| `--channel` | 输出渠道（当前仅支持 `cli`；其他值自动回退） | `cli` |
 | `--no-learn` | 跳过智能学习层，仅输出新闻摘要（快速模式，省 60-80 秒） | 关闭 |
 
 ---
@@ -637,7 +638,38 @@ scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
 **即时决策响应**：若 news-learner 返回包含 `⚡ 需要立即决策的条目` 的即时决策块，协调者应等待用户输入并按如下规则响应：
 - 用户输入编号（如 `1`）：根据该条目的采纳方案，启动对应 agent（如 `skill-creator`、`dev-workflow`），传入条目的 URL 和采纳步骤
 - 用户输入 `s` 或无响应：标记该条目为跳过，继续
-- 用户输入 `w`：不执行采纳方案，改以 `[Learn]` 等级归档到 tech-watch（协调者无需操作，news-learner 负责归档）
+- 用户输入 `w`：不执行采纳方案，改以 `[Learn]` 等级**由协调者直接归档**到 tech-watch.md：
+
+  ```bash
+  # 解析 w 输入对应的条目（通过行号匹配），追加到 tech-watch.md
+  TECH_WATCH="$HOME/.claude/projects/$CURRENT_PROJECT/memory/tech-watch.md"
+  if [ ! -f "$TECH_WATCH" ]; then
+    mkdir -p "$(dirname "$TECH_WATCH")"
+    cat > "$TECH_WATCH" << 'TW_EOF'
+  # Tech Watch — 技术观察归档
+
+  记录历次 /news-digest 学习层中推荐等级为 [Learn] 的条目（持续关注，暂不行动）。
+  [Adopt] / [Priority Adopt] 条目在 /news-digest 会话中即时决策，不在此归档。
+  格式：日期 | 等级 | 标题 | 简要分析 + 备用时机。
+
+  ---
+
+  TW_EOF
+  fi
+  # 追加 [Learn] 条目（格式参照 news-learner Step 6）
+  echo "## $(date +%Y-%m-%d) | [Learn] | {标题}" >> "$TECH_WATCH"
+  echo "- **来源**：{source} | {url}" >> "$TECH_WATCH"
+  echo "- **status**: pending" >> "$TECH_WATCH"
+  echo "---" >> "$TECH_WATCH"
+  echo "[归档] 条目已加入 tech-watch.md 观察队列"
+  ```
+
+若 news-learner 返回包含 `[ESCALATE:` 的内容，输出：
+```
+[ERR] 学习层配置错误：{ESCALATE 信息}
+   请检查 scratch 路径参数是否正确传递。
+```
+并正常结束，不影响 Step 3 已输出的摘要。
 
 若 news-learner 返回空结果、执行失败或超时，输出：
 ```
