@@ -58,8 +58,8 @@ allowed-tools: ["Bash", "Agent"]
 首先通过 Bash 获取运行时路径：
 ```bash
 PROJECT_ROOT=$(pwd)
-CURRENT_PROJECT=$(pwd | sed 's|^/||;s|/|-|g')
-TODAY=$(date +%Y%m%d_%H%M%S)
+CURRENT_PROJECT=$(pwd | sed 's|/|-|g')
+TODAY=$(date +%Y%m%d)
 PLATFORM_ROOT="$HOME/.claude"
 mkdir -p "$(pwd)/.claude/agent_scratch"
 mkdir -p "$HOME/.claude/projects/$CURRENT_PROJECT/memory"
@@ -87,10 +87,16 @@ limit = 5
 m = re.search(r'--limit\s+(\d+)', args)
 if m: limit = int(m.group(1))
 
-# 解析 --sources
+# 解析 --sources（大小写不敏感，自动转小写）
+VALID_SOURCES = {'hn','arxiv','github','anthropic','openai','hf','reddit','langchain','github_watch','openclaw','clawhub'}
 sources = []
 m = re.search(r'--sources\s+(\S+)', args)
-if m: sources = [s.strip() for s in m.group(1).split(',') if s.strip()]
+if m:
+    raw = [s.strip().lower() for s in m.group(1).split(',') if s.strip()]
+    invalid = [s for s in raw if s not in VALID_SOURCES]
+    if invalid:
+        print(f"[WARN] 未知源：{', '.join(invalid)}，有效源：{', '.join(sorted(VALID_SOURCES))}。已忽略无效值。")
+    sources = [s for s in raw if s in VALID_SOURCES]
 
 # 解析 --no-learn
 no_learn = '--no-learn' in args
@@ -181,6 +187,8 @@ fi
     -o /tmp/nd_openclaw.xml || echo '<rss><channel></channel></rss>' > /tmp/nd_openclaw.xml) &
 
 # clawhub skill registry（多词搜索聚合，/api/v1/skills list 为 deprecated stub，用 search 代替）
+# 注：当前并行 7 个搜索词各起一进程对同一域名并发，可能触发速率限制导致返回空结果；
+# 若 clawhub 结果持续为空，可将 for 循环改为 xargs -P 3 限制并发，或合并搜索词到单次 OR 查询。
 if [[ -z "$SOURCES" || " $SOURCES " =~ " clawhub " ]]; then
   rm -f /tmp/nd_clawhub_*.json
   for q in agent mcp code git workflow security web; do
@@ -191,13 +199,15 @@ if [[ -z "$SOURCES" || " $SOURCES " =~ " clawhub " ]]; then
 fi
 
 # github_watch：跟踪指定仓库的 releases.atom（无新 release 时条目为空）
-# ⚠️ 与下方 Python 解析块 WATCHED_REPOS 保持同步，修改时两处同步修改
+# WATCHED_REPOS 是唯一来源，写入 /tmp/nd_watched_repos.json，Python 解析块从该文件读取，避免双重维护。
 if [[ -z "$SOURCES" || " $SOURCES " =~ " github_watch " ]]; then
   WATCHED_REPOS=(
     "openclaw/openclaw"
     "openclaw/clawhub"
     "anomalyco/opencode"
   )
+  # 将配置持久化供 Python 块使用
+  python3 -c "import json,sys; json.dump(sys.argv[1:], open('/tmp/nd_watched_repos.json','w'))" "${WATCHED_REPOS[@]}"
   rm -f /tmp/nd_ghwatch_*.xml
   for repo in "${WATCHED_REPOS[@]}"; do
     (slug=$(echo "$repo" | tr '/' '_')
@@ -415,9 +425,12 @@ if not SOURCES or 'clawhub' in SOURCES:
         print(f'[FETCH_FAILED] clawhub parse error: {e}', file=sys.stderr)
 
 # ── github_watch（指定仓库 releases.atom）────────────────
-# ⚠️ 与上方 Bash 抓取块 WATCHED_REPOS 保持同步，修改时两处同步修改
+# WATCHED_REPOS 从 Bash 块写入的 /tmp/nd_watched_repos.json 读取（单一来源，无双重维护）
 if not SOURCES or 'github_watch' in SOURCES:
-    WATCHED_REPOS = ['openclaw/openclaw', 'openclaw/clawhub', 'anomalyco/opencode']
+    try:
+        WATCHED_REPOS = json.load(open('/tmp/nd_watched_repos.json'))
+    except Exception:
+        WATCHED_REPOS = []  # Bash 块未写入（github_watch 源被禁用时）
     for repo in WATCHED_REPOS:
         slug = repo.replace('/', '_')
         fpath = f'/tmp/nd_ghwatch_{slug}.xml'
@@ -463,6 +476,7 @@ curl 完成后，输出进度提示：
    | Coding Agent | opencode, openclaw, swe-agent, open-swe, devin, codex, computer use, agentic coding, coding agent |
    | Agent 编排 | agent orchestration, agent protocol, a2a, agent-to-agent, swarm, handoff, supervisor, subagent, tool calling, function calling |
    | 设计模式 | prompt engineering, rag, fine-tun, evaluation, evals, memory, planning, reasoning |
+   | 模型/技术 | llm, large language model, language model, gpt, claude, gemini, llama, mistral, mixtral, phi, qwen, deepseek, embedding, alignment, rlhf, reinforcement learning |
 
    收集 `relevant_items[]`：命中的条目按 **来源权威度 × 热度** 排序，最多取 **3 条**。
 
@@ -563,7 +577,7 @@ PYEOF2
 
 ### Hacker News
 1. [标题]
-   摘要文字 | {时间} | {链接}
+   摘要文字（{热度：N points/comments}）| {链接}
 
 2. ...
 
@@ -590,11 +604,17 @@ Footer 字段规则：
 
 ### Step 4：智能学习层（自动，当 relevant_items 非空且 no_learn=false 时）
 
-在启动 news-learner 前，先通过 Bash 验证前置文件存在：
+在启动 news-learner 前，先通过 Bash 验证前置文件存在且 JSON 有效：
 ```bash
 test -f /tmp/nd_relevant.json && echo "RELEVANT_OK" || echo "RELEVANT_MISSING"
 ```
 若输出 `RELEVANT_MISSING`，输出 `[学习层] nd_relevant.json 未找到，跳过智能学习分析。` 后结束。
+
+验证 JSON 有效性（防止 Step 2 中途异常导致空文件或部分写入）：
+```bash
+python3 -c "import json; r=json.load(open('/tmp/nd_relevant.json')); assert isinstance(r, list)" && echo "RELEVANT_VALID" || echo "RELEVANT_INVALID"
+```
+若输出 `RELEVANT_INVALID`，输出 `[学习层] nd_relevant.json 格式无效（非 JSON 数组），跳过智能学习分析。` 后结束。
 
 然后用可执行代码检查 relevant_items 数量和 no_learn 标志：
 ```bash
@@ -611,7 +631,8 @@ print(f'NO_LEARN={p.get(\"no_learn\", False)} RELEVANT_COUNT={len(r)}')
 否则，**先输出等待提示**：
 ```
 [学习层] 检测到 {n} 条相关条目，启动智能学习分析（预计 60-80 秒）...
-   本次如需中断：Ctrl+C 终止执行
+   新闻摘要已输出于上方，可向上滚动查看。
+   如需中断学习层：Ctrl+C（不影响已输出的摘要）
    下次可传入 --no-learn 跳过此步骤
 ```
 
@@ -620,6 +641,9 @@ print(f'NO_LEARN={p.get(\"no_learn\", False)} RELEVANT_COUNT={len(r)}')
 RELEVANT_ITEMS=$(python3 -c "import json; print(json.dumps(json.load(open('/tmp/nd_relevant.json'))))")
 echo "RELEVANT_ITEMS=$RELEVANT_ITEMS"
 ```
+
+> **数据通道说明**：`echo "RELEVANT_ITEMS=..."` 仅供日志可读，实际数据通道为 `/tmp/nd_relevant.json` 文件。
+> news-learner Step 2 直接读取该文件（`json.load(open('/tmp/nd_relevant.json'))`），不依赖 prompt 参数中的内联 JSON。
 
 然后启动 **`news-learner` agent**，传入：
 
@@ -637,11 +661,12 @@ scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
 
 **即时决策响应**：若 news-learner 返回包含 `⚡ 需要立即决策的条目` 的即时决策块，协调者应等待用户输入并按如下规则响应：
 - 用户输入编号（如 `1`）：根据该条目的采纳方案，启动对应 agent（如 `skill-creator`、`dev-workflow`），传入条目的 URL 和采纳步骤
-- 用户输入 `s` 或无响应：标记该条目为跳过，继续
-- 用户输入 `w`：不执行采纳方案，改以 `[Learn]` 等级**由协调者直接归档**到 tech-watch.md：
+- 用户输入 `s N`（如 `s 1`）：跳过第 N 条；`s all` 跳过全部。**注意：`s` 会将条目记入历史，下次同一主题出现时自动降级为 `[Skip]`，若只想本次忽略、不影响后续，请直接开始下一个对话而不回应。**
+- 用户输入 `w N`（如 `w 2`）：将第 N 条降级为 `[Learn]` 归档到 tech-watch.md（不执行采纳方案）：
 
   ```bash
-  # 解析 w 输入对应的条目（通过行号匹配），追加到 tech-watch.md
+  # 解析 w N 输入：从 /tmp/nd_relevant.json 按索引（N-1）提取条目，追加到 tech-watch.md
+  # ITEM_IDX 由协调者根据用户输入的 N 计算（N-1）
   TECH_WATCH="$HOME/.claude/projects/$CURRENT_PROJECT/memory/tech-watch.md"
   if [ ! -f "$TECH_WATCH" ]; then
     mkdir -p "$(dirname "$TECH_WATCH")"
@@ -656,12 +681,35 @@ scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
 
   TW_EOF
   fi
-  # 追加 [Learn] 条目（格式参照 news-learner Step 6）
-  echo "## $(date +%Y-%m-%d) | [Learn] | {标题}" >> "$TECH_WATCH"
-  echo "- **来源**：{source} | {url}" >> "$TECH_WATCH"
-  echo "- **status**: pending" >> "$TECH_WATCH"
-  echo "---" >> "$TECH_WATCH"
-  echo "[归档] 条目已加入 tech-watch.md 观察队列"
+  # 从 nd_relevant.json 读取对应条目后追加（避免字面量占位符问题）
+  python3 - << WARCH_EOF
+  import json, subprocess, sys
+  idx = ${ITEM_IDX}  # 协调者展开：用户输入 N 则 idx=N-1
+  items = json.load(open('/tmp/nd_relevant.json'))
+  if idx < 0 or idx >= len(items):
+      print(f'[ERR] 无效条目编号 {idx+1}，共 {len(items)} 条', file=sys.stderr)
+      sys.exit(1)
+  item = items[idx]
+  title   = item.get('title', '（无标题）')
+  source  = item.get('source', '')
+  url     = item.get('url', '')
+  tech_watch = '${TECH_WATCH}'
+  # URL 去重检查
+  try:
+      existing = open(tech_watch).read()
+      if url and url in existing:
+          print(f'[SKIP-dup] URL 已在 tech-watch.md 中存在，跳过重复归档：{url}')
+          sys.exit(0)
+  except FileNotFoundError:
+      pass
+  import datetime
+  today = datetime.date.today().isoformat()
+  with open(tech_watch, 'a') as f:
+      f.write(f'## {today} | [Learn] | {title}\n\n')
+      f.write(f'- **来源**：{source} | {url}\n')
+      f.write('- **status**: pending\n\n---\n')
+  print(f'[归档] 条目已加入 tech-watch.md 观察队列：{title}')
+  WARCH_EOF
   ```
 
 若 news-learner 返回包含 `[ESCALATE:` 的内容，输出：
@@ -694,6 +742,8 @@ scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
 ---
 
 ## 扩展渠道（未来）
+
+> ⚠️ **以下渠道均为规划中功能，当前版本尚未实现。传入非 `cli` 值的 `--channel` 参数将自动回退至 `cli` 输出，不会报错。**
 
 当 `--channel` 为非 `cli` 时，将上述格式化内容路由到对应 handler：
 
