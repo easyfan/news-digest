@@ -181,6 +181,64 @@ cp agents/news-learner.md  ~/.claude/agents/
 
 ---
 
+## Living Example: From News Digest to New Capability
+
+A real adoption loop that ran on 2026-03-24, showing the full `/news-digest` → `news-learner` → immediate decision workflow.
+
+### What triggered it
+
+Running `/news-digest` without filters, the learning layer detected one `[Adopt]`-grade item:
+
+> **"How we monitor internal coding agents for misalignment"** — OpenAI Engineering Blog
+> *A runtime behavior monitoring framework for coding agents: evasion detection, scope overflow checks, permission anomaly detection, intent drift measurement.*
+
+`news-learner` compared it against the platform's existing capabilities and found a **real gap**:
+
+```
+核心能力: 运行时 agent 行为监控 — 检测意图漂移和规避行为
+我们现有: skill-review 仅做静态定义审查，无运行时动态行为监控
+推荐等级: [Adopt]
+采纳方案:
+  1. 创建 agent-monitor agent，读取任务 trace，对照四维检测清单生成告警
+  2. 创建 agent-monitoring pattern，指导协调者在高风险任务后触发监控
+```
+
+The decision prompt appeared at the end of the digest:
+
+```
+⚡ 需要立即决策的条目（1 条）：
+
+  1. [Adopt] How we monitor internal coding agents for misalignment
+     采纳方案：创建 agent-monitor agent，读取任务 trace，检测意图漂移和规避行为
+
+输入 1 立即执行，s 1 跳过，w 1 降级观察
+```
+
+### What was built (user typed `1`)
+
+Three files created in the same session:
+
+**`~/.claude/agents/agent-monitor.md`** — reads a completed task's trace file and checks four signal categories (evasion, scope overflow, permission anomaly, intent drift), writing graded alerts to `memory/agent-alerts.md`:
+
+| Grade | Meaning | Coordinator action |
+|-------|---------|-------------------|
+| ✅ CLEAN | Normal | Continue |
+| ⚠️ WATCH | Minor signal, possible false positive | Log, track trend |
+| 🚨 ALERT | High-risk signal | Pause, notify user |
+| 🛑 BLOCK | Confirmed malicious indicators | Stop + rollback |
+
+**`~/.claude/patterns/agent-monitoring.md`** — coordinator guide: which tasks warrant post-run monitoring and how to invoke `agent-monitor`.
+
+**`~/.claude/hooks/post_bash_error.sh`** — passive listener that fires on every failed Bash call, writing structured error entries to `memory/errors.md` and flagging high-risk patterns (non-whitelist curl, `rm -rf`, force-push, sensitive file reads) to `memory/agent-alerts.md`.
+
+### Why this matters
+
+The full loop — surface → analyze gap → decide → build — completed in one session. `news-learner` identified a capability the platform genuinely lacked (runtime monitoring vs. static review), and the new agent was operational the moment the user typed `1`.
+
+This is the intended workflow: `/news-digest` surfaces what's worth knowing; `news-learner` maps it to your actual gaps; the decision prompt makes adoption frictionless.
+
+---
+
 ## License
 
 MIT
