@@ -13,7 +13,7 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 
 ## What it does
 
-**Step 1 — Fetch** from 11 sources in a single Bash call:
+**Step 1 — Notify & fetch**: outputs an estimated-time banner (20–40 s for news, +60–80 s with learning layer) and then fetches from 11 sources in a single Bash call:
 
 | Source | What you get |
 |--------|-------------|
@@ -22,14 +22,14 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 | `hf` | HuggingFace Daily Papers (curated AI) |
 | `github` | GitHub Trending repositories |
 | `anthropic` | Anthropic official news |
-| `openai` | OpenAI news (may be Cloudflare-blocked) |
+| `openai` | OpenAI news (via Jina Reader, bypasses Cloudflare) |
 | `reddit` | r/MachineLearning + r/LocalLLaMA + r/agents |
 | `langchain` | LangChain blog RSS |
 | `github_watch` | Tracked repo releases (openclaw, opencode…) |
 | `openclaw` | OpenClaw blog RSS |
 | `clawhub` | ClawHub latest skill updates |
 
-**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity.
+**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity. If more than 3 sources fail to return data, a `[诊断]` partial-failure warning is shown at the top; if more than 50% fail, a `⚠️ [严重警告]` alert is shown with troubleshooting steps.
 
 **Step 3 — Output** a structured CLI digest:
 
@@ -63,11 +63,15 @@ Sources: hn arxiv hf github anthropic  |  Failed: openai  |  Filtered by: agent 
   → link: https://...
 
 [Learn] Framework Y — overlaps with existing pattern Z
-  → archived to tech-watch.md for later review
+  → archived to ~/.claude/projects/<project>/memory/tech-watch.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip]`
+
+- **`[Adopt]` / `[Priority Adopt]`**: interactive decision prompt appears; type a number to act, `s N` to skip, `w N` to downgrade to `[Learn]`
+- **`[Learn]`**: URL-deduplicated and archived to `tech-watch.md` in the current project's memory directory
+- **`[Skip]`**: noted in session, no file written
 
 ---
 
@@ -124,7 +128,8 @@ cp agents/news-learner.md  ~/.claude/agents/
 | `topics` | Keyword filter — space-separated, OR logic | all items |
 | `--sources` | Comma-separated source IDs (see table above) | all 11 sources |
 | `--limit N` | Max items per source | 5 |
-| `--no-learn` | Skip learning layer, output news only (fast) | off |
+| `--no-learn` | Skip learning layer, output news only (~60–80 s saved) | off |
+| `--channel` | Output channel (`cli` currently available; `slack`/`email`/`file` planned) | `cli` |
 
 **Examples:**
 
@@ -165,17 +170,19 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 /news-digest (command coordinator)
 │
-├── Step 1: Bash — curl all sources → /tmp/nd_*.{json,xml,html}
+├── Step 0: Bash — parse args → /tmp/nd_params.json (topics, sources, limit, no_learn)
+├── Step 1: Output start banner (est. time) → Bash: curl all sources → /tmp/nd_*.{json,xml,html}
 ├── Step 2: Bash — Python heredoc: parse → filter → deduplicate → relevance-tag
+│           writes /tmp/nd_deduped.json + /tmp/nd_relevant.json
+│           (⚠️ alert if >50% sources failed; [诊断] if >3 failed)
 ├── Step 3: Output formatted CLI digest
 │
-└── Step 4 (if relevant_items found and --no-learn not set):
-    └── news-learner (agent)
-        ├── Reads ~/.claude/commands/ + agents/ + patterns/ descriptions
-        ├── Reads tech-watch.md history (if exists)
-        ├── Fetches full content for each relevant item (curl)
-        ├── Analyzes: problem → gap → recommendation level
-        ├── Writes [Learn] items → tech-watch.md
+└── Step 4 (if /tmp/nd_relevant.json non-empty and --no-learn not set):
+    └── news-learner (agent) ← receives relevant_items_path: /tmp/nd_relevant.json
+        ├── [进度 1/4] Reads ~/.claude/ descriptions to inventory platform capabilities
+        ├── [进度 2/4] Reads tech-watch.md history (if exists); fetches item content via curl
+        ├── [进度 3/4] Analyzes each item: problem → gap → recommendation level
+        ├── [进度 4/4] Writes [Learn] items → tech-watch.md (URL-deduplicated)
         └── Returns interactive decision prompt for [Adopt]+ items
 ```
 

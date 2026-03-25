@@ -42,9 +42,14 @@ warn()  { printf "  \033[33m! %s\033[0m\n" "$*"; }
 run()   { $DRY_RUN || "$@"; }
 
 # ── Files to install: src relative to SCRIPT_DIR → dst relative to CLAUDE_DIR
-declare -A FILES=(
-  ["commands/news-digest.md"]="commands/news-digest.md"
-  ["agents/news-learner.md"]="agents/news-learner.md"
+# Using parallel arrays for bash 3.2 compatibility (macOS default)
+SRCS=(
+  "commands/news-digest.md"
+  "agents/news-learner.md"
+)
+DSTS=(
+  "commands/news-digest.md"
+  "agents/news-learner.md"
 )
 
 # ── Header ───────────────────────────────────────────────────────────────────
@@ -63,8 +68,8 @@ fi
 # ── Uninstall ─────────────────────────────────────────────────────────────────
 if $UNINSTALL; then
   echo "  Uninstalling..."
-  for rel_dst in "${!FILES[@]}"; do
-    dst="$CLAUDE_DIR/${FILES[$rel_dst]}"
+  for rel_dst in "${DSTS[@]}"; do
+    dst="$CLAUDE_DIR/$rel_dst"
     if [ -f "$dst" ]; then
       run rm "$dst"
       ok "Removed $dst"
@@ -81,9 +86,11 @@ fi
 # ── Install ───────────────────────────────────────────────────────────────────
 changed=0
 
-for rel_src in "${!FILES[@]}"; do
+for i in "${!SRCS[@]}"; do
+  rel_src="${SRCS[$i]}"
+  rel_dst="${DSTS[$i]}"
   src="$SCRIPT_DIR/$rel_src"
-  dst="$CLAUDE_DIR/${FILES[$rel_src]}"
+  dst="$CLAUDE_DIR/$rel_dst"
   dst_dir="$(dirname "$dst")"
 
   [ -d "$dst_dir" ] || run mkdir -p "$dst_dir"

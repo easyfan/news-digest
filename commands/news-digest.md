@@ -1,5 +1,5 @@
 ---
-description: 从多平台（HN/arXiv/GitHub 等）抓取 AI 技术新闻并生成摘要，支持关键词过滤和智能学习层分析
+description: 从多平台（HN/arXiv/GitHub 等）抓取 AI 技术新闻并生成摘要，支持关键词过滤和智能学习层分析；学习层会写入 tech-watch.md 并调用 news-learner subagent（额外 60-80 秒），可用 --no-learn 跳过
 argument-hint: "[topics...] [--sources SOURCE,...] [--limit N] [--no-learn] [--channel cli]"
 allowed-tools: ["Bash", "Agent"]
 ---
@@ -23,7 +23,7 @@ allowed-tools: ["Bash", "Agent"]
 | `topics` | 关键词过滤（空格分隔，OR 逻辑；多词匹配任意一词即保留，不支持 AND 语义） | 无（全量） |
 | `--sources` | 逗号分隔：`hn` `arxiv` `github` `anthropic` `openai` `hf` `reddit` `langchain` `github_watch` `openclaw` `clawhub` | 全部 |
 | `--limit` | 每源最多展示条目数 | 5 |
-| `--channel` | 输出渠道（当前仅支持 `cli`；其他值自动回退） | `cli` |
+| `--channel` | 输出渠道（当前仅支持 `cli`（当前可用）；其他值如 `slack`/`email`/`file`/`gist` 为规划中功能，自动回退至 `cli`） | `cli` |
 | `--no-learn` | 跳过智能学习层，仅输出新闻摘要（快速模式，省 60-80 秒） | 关闭 |
 
 ---
@@ -74,6 +74,14 @@ echo "PLATFORM_ROOT=$PLATFORM_ROOT"
 [ -z "$ARGUMENTS" ] && echo "[INFO] \$ARGUMENTS 为空，使用默认参数（topics=[], limit=5, sources=全部）。"
 ```
 
+在解析参数完成后，输出执行开始提示（含学习层耗时说明）：
+```
+[INFO] 开始抓取新闻摘要（全源模式预计 20-40 秒）。
+   学习层已启用：检测到相关条目后将额外运行 news-learner 分析（约 60-80 秒）。
+   如需跳过学习层：使用 /news-digest --no-learn（快速模式）
+```
+> 若解析出 no_learn=true，将上方"学习层已启用"行替换为：`[--no-learn] 快速模式，仅输出摘要，跳过学习层分析。`
+
 执行以下 Bash 命令解析 `$ARGUMENTS` 并写入 nd_params.json（`python3 - "$ARGUMENTS"` 将参数作为 `sys.argv[1]` 安全传入，避免 topics 含特殊字符时注入风险）：
 
 ```bash
@@ -116,7 +124,7 @@ _ch = _re2.search(r'--channel\s+(\S+)', args)
 if _ch:
     print(f"[--channel] 渠道 '{_ch.group(1)}' 当前仅支持 cli 输出，已自动回退。")
 ARGS_PARSE_EOF
-python3 -c "import json; p=json.load(open('/tmp/nd_params.json')); assert all(k in p for k in ('limit','topics','sources','no_learn'))" && echo "nd_params.json OK" || echo "[WARN] nd_params.json 写入验证失败"
+python3 -c "import json; p=json.load(open('/tmp/nd_params.json')); assert all(k in p for k in ('limit','topics','sources','no_learn'))" && echo "nd_params.json OK" || { echo "[WARN] nd_params.json 写入验证失败，使用默认值（limit=5, topics=[], sources=全部, no_learn=false）"; python3 -c "import json; json.dump({'topics':[],'limit':5,'sources':[],'no_learn':False}, open('/tmp/nd_params.json','w'))"; }
 ```
 
 > `$ARGUMENTS` 通过 `sys.argv[1]` 安全传入 Python3，heredoc 标签使用单引号（不展开变量），Python3 用 `re` 解析所有参数字段并用 `json.dump()` 安全写出，彻底避免特殊字符注入风险。topics/sources 为空时自动为 `[]`，no_learn 字段已包含在 JSON 中供 Step 4 直接读取。
@@ -298,8 +306,6 @@ if not SOURCES or 'github' in SOURCES:
                     items.append({'title': slug, 'url': f'https://github.com/{slug}', 'source': 'github', 'snippet': '', 'metric': 0})
         if not seen:
             print('[PARSE_WARN] github HTML 结构可能已变更，解析返回空列表；可尝试重新运行或用 --sources 排除 github', file=sys.stderr)
-            # 同时追加到失败源记录（LRN-20260322: 状态必须写入持久化文件，不能仅 stderr）
-            with open('/tmp/nd_failed_sources.txt', 'a') as _fw: _fw.write('github:PARSE_WARN\n')
     except Exception as e:
         print(f'[FETCH_FAILED] github parse error: {e}', file=sys.stderr)
 
@@ -491,6 +497,10 @@ items = json.load(open('/tmp/nd_items.json'))
 
 import json as _pj; _p = _pj.load(open('/tmp/nd_params.json')); TOPICS = _p.get('topics', []); SOURCES = set(_p.get('sources', []))
 SOURCE_RANK = {'anthropic': 5, 'openai': 4, 'arxiv': 3, 'hf': 3, 'github': 2, 'hn': 1, 'reddit': 1, 'langchain': 2, 'github_watch': 2, 'openclaw': 3, 'clawhub': 3}
+
+# ── 可自定义配置区 ────────────────────────────────────────────────────────────
+# RELEVANT_KW：命中任意关键词则将条目标记为相关（relevant=true），进入学习层分析。
+# 可根据个人关注领域增删关键词（大小写不敏感）。
 RELEVANT_KW = [
     'agent', 'skill', 'mcp', 'tool use', 'workflow', 'orchestration', 'multi-agent',
     'langchain', 'langgraph', 'crewai', 'autogen', 'n8n', 'dify', 'llamaindex', 'haystack', 'cursor', 'copilot',
@@ -500,6 +510,7 @@ RELEVANT_KW = [
     'llm', 'large language model', 'language model', 'gpt', 'claude', 'gemini', 'llama', 'mistral', 'mixtral', 'phi',
     'qwen', 'deepseek', 'embedding', 'alignment', 'rlhf', 'reinforcement learning',
 ]
+# ── 可自定义配置区结束 ─────────────────────────────────────────────────────────
 
 # 1. 关键词过滤
 if TOPICS:
@@ -555,7 +566,11 @@ enabled_sources = SOURCES if SOURCES else ALL_SOURCES
 sources_in_data = set(item.get('source','') for item in items)
 failed_count = len(enabled_sources - sources_in_data)
 if failed_count > len(enabled_sources) * 0.5:
-    print(f'[诊断] 多数源抓取失败（{failed_count}/{len(enabled_sources)}），请检查网络连接。可运行 curl -s "https://hn.algolia.com/api/v1/search?tags=front_page" 测试连通性，或用 --sources 指定可用源重试。')
+    print(f'\n⚠️  [严重警告] 多数源抓取失败（{failed_count}/{len(enabled_sources)} 个源无数据）！')
+    print(f'   请检查网络连接。可运行 curl -s "https://hn.algolia.com/api/v1/search?tags=front_page" 测试连通性。')
+    print(f'   或用 --sources 指定可用源重试（如：/news-digest --sources hn,hf）\n')
+elif failed_count > 3:
+    print(f'[诊断] 部分源抓取失败（{failed_count}/{len(enabled_sources)}），请检查网络连接。可运行 curl -s "https://hn.algolia.com/api/v1/search?tags=front_page" 测试连通性，或用 --sources 指定可用源重试。')
 PYEOF2
 ```
 
@@ -600,7 +615,7 @@ Sources: hn arxiv github anthropic  |  Failed: [openai] <- 网络超时或访问
 Footer 字段规则：
 - `Failed:` 仅在有源抓取失败时显示；`Skipped:` 仅在有源因内容空白（arXiv 周末、HF 无更新）时显示
 - `Filtered by:` 仅在 topics 非空时显示；topics 为空时省略整个 `Filtered by` 字段
-- **全源失败诊断**：若 Failed 源数量超过启用源总数的 50%，在 Footer 下方追加提示：`[诊断] 多数源抓取失败，请检查网络连接。可运行 curl -s "https://hn.algolia.com/api/v1/search?tags=front_page" 测试连通性，或用 --sources 指定可用源重试。`
+- **全源失败诊断**：若 Failed 源数量超过 3 个，在 Step 2 输出完成后（摘要顶部）追加醒目警告（见 Step 2 诊断代码）；超过启用源总数 50% 时同时显示 `⚠️ [严重警告]` 提示块
 
 ### Step 4：智能学习层（自动，当 relevant_items 非空且 no_learn=false 时）
 
@@ -648,7 +663,7 @@ echo "RELEVANT_ITEMS=$RELEVANT_ITEMS"
 然后启动 **`news-learner` agent**，传入：
 
 ```
-relevant_items: {RELEVANT_ITEMS}
+relevant_items_path: /tmp/nd_relevant.json
 platform_root: {PLATFORM_ROOT}
 current_project: {CURRENT_PROJECT}
 scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
@@ -682,18 +697,25 @@ scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
   TW_EOF
   fi
   # 从 nd_relevant.json 读取对应条目后追加（避免字面量占位符问题）
-  python3 - << WARCH_EOF
+  # ITEM_IDX 通过 sys.argv[1] 传入（整数校验），避免 heredoc 变量展开注入风险
+  python3 - "${ITEM_IDX}" "$TECH_WATCH" << 'WARCH_EOF'
   import json, subprocess, sys
-  idx = ${ITEM_IDX}  # 协调者展开：用户输入 N 则 idx=N-1
+  # 整数校验：确保 ITEM_IDX 为非负整数，防止注入
+  try:
+      idx = int(sys.argv[1])
+      assert idx >= 0
+  except (ValueError, AssertionError, IndexError):
+      print(f'[ERR] ITEM_IDX 无效（必须为非负整数）：{sys.argv[1] if len(sys.argv)>1 else "(空)"}', file=sys.stderr)
+      sys.exit(1)
+  tech_watch = sys.argv[2] if len(sys.argv) > 2 else ''
   items = json.load(open('/tmp/nd_relevant.json'))
-  if idx < 0 or idx >= len(items):
+  if idx >= len(items):
       print(f'[ERR] 无效条目编号 {idx+1}，共 {len(items)} 条', file=sys.stderr)
       sys.exit(1)
   item = items[idx]
   title   = item.get('title', '（无标题）')
   source  = item.get('source', '')
   url     = item.get('url', '')
-  tech_watch = '${TECH_WATCH}'
   # URL 去重检查
   try:
       existing = open(tech_watch).read()

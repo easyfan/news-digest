@@ -1,6 +1,6 @@
 {
   "name": "news-digest-cc",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Multi-source AI news digest for Claude Code — fetches HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, OpenClaw, ClawHub with intelligent learning layer",
   "keywords": [
     "claude-code",
