@@ -25,11 +25,13 @@ UNINSTALL=false
 
 for arg in "$@"; do
   case "$arg" in
-    --dry-run)   DRY_RUN=true ;;
-    --uninstall) UNINSTALL=true ;;
+    --dry-run)    DRY_RUN=true ;;
+    --uninstall)  UNINSTALL=true ;;
+    --target=*)   CLAUDE_DIR="${arg#--target=}" ;;
     --help|-h)
-      echo "Usage: ./install.sh [--dry-run] [--uninstall]"
-      echo "  CLAUDE_DIR=/path ./install.sh   # custom Claude config dir"
+      echo "Usage: ./install.sh [--dry-run] [--uninstall] [--target=<path>]"
+      echo "  CLAUDE_DIR=/path ./install.sh   # custom Claude config dir (env var)"
+      echo "  ./install.sh --target=/path     # custom Claude config dir (flag)"
       exit 0 ;;
   esac
 done

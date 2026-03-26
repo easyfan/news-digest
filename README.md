@@ -81,15 +81,20 @@ Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip
 
 ```
 /plugin marketplace add easyfan/news-digest
+/plugin install news-digest@news-digest
 ```
 
-### Option B — npx
+> **Note**: `/plugin` is a Claude Code REPL built-in command and cannot be invoked via `claude -p` (returns `Unknown skill: plugin`). Automated test pipelines (skill-test Stage 5) do not cover this install path — run it manually in a Claude Code session.
+
+<!--
+### Option B — npx (not yet published)
 
 ```bash
 npx news-digest-cc
 ```
+-->
 
-### Option C — install script
+### Option B — install script
 
 ```bash
 # macOS / Linux
@@ -108,7 +113,7 @@ cd news-digest
 CLAUDE_DIR=/custom ./install.sh   # custom Claude config path
 ```
 
-### Option D — manual
+### Option C — manual
 
 ```bash
 cp commands/news-digest.md ~/.claude/commands/

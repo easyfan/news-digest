@@ -41,10 +41,10 @@
     "install.ps1"
   ],
   "bin": {
-    "news-digest-install": "install.sh"
+    "news-digest-cc": "install.sh"
   },
   "scripts": {
-    "postinstall": "echo '\\n  news-digest-cc installed!\\n  Run: npx news-digest-install\\n  Or copy manually:\\n    cp commands/news-digest.md ~/.claude/commands/\\n    cp agents/news-learner.md  ~/.claude/agents/\\n'"
+    "postinstall": "echo '\\n  news-digest-cc installed!\\n  Run: npx news-digest-cc\\n  Or copy manually:\\n    cp commands/news-digest.md ~/.claude/commands/\\n    cp agents/news-learner.md  ~/.claude/agents/\\n'"
   },
   "engines": {
     "node": ">=18"

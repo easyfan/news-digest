@@ -2,6 +2,9 @@
   "name": "news-digest",
   "version": "1.1.0",
   "description": "Multi-source AI news digest with intelligent learning layer — fetches HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, OpenClaw, ClawHub and summarizes with Claude",
+  "install": "bash install.sh",
+  "commands": ["news-digest"],
+  "agents": ["news-learner"],
   "author": {
     "name": "cc-meta-project"
   },
