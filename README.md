@@ -90,7 +90,7 @@ Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip
 ### Option B — npx (not yet published)
 
 ```bash
-npx news-digest-cc
+npx news-digest
 ```
 -->
 

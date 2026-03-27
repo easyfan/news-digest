@@ -22,7 +22,7 @@ metadata:
 /plugin marketplace add easyfan/news-digest
 
 # 方式二：npx（无需克隆仓库）
-npx news-digest-cc
+npx news-digest
 
 # 方式三：克隆后运行安装脚本
 ./install.sh              # macOS / Linux

@@ -90,7 +90,7 @@ Claude Code 多源 AI 技术新闻摘要——从 11 个来源抓取、汇总最
 ### 方式 B — npx（未发布，暂不可用）
 
 ```bash
-npx news-digest-cc
+npx news-digest
 ```
 -->
 

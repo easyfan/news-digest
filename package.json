@@ -1,5 +1,5 @@
 {
-  "name": "news-digest-cc",
+  "name": "news-digest",
   "version": "1.2.0",
   "description": "Multi-source AI news digest for Claude Code — fetches HN, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace, Reddit, LangChain, OpenClaw, ClawHub with intelligent learning layer",
   "keywords": [
@@ -41,10 +41,10 @@
     "install.ps1"
   ],
   "bin": {
-    "news-digest-cc": "install.sh"
+    "news-digest": "install.sh"
   },
   "scripts": {
-    "postinstall": "echo '\\n  news-digest-cc installed!\\n  Run: npx news-digest-cc\\n  Or copy manually:\\n    cp commands/news-digest.md ~/.claude/commands/\\n    cp agents/news-learner.md  ~/.claude/agents/\\n'"
+    "postinstall": "echo '\\n  news-digest installed!\\n  Run: npx news-digest\\n  Or copy manually:\\n    cp commands/news-digest.md ~/.claude/commands/\\n    cp agents/news-learner.md  ~/.claude/agents/\\n'"
   },
   "engines": {
     "node": ">=18"
