@@ -1,0 +1,76 @@
+{
+  "skill_name": "news-digest",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/news-digest",
+      "expected_output": "全源抓取（hn/arxiv/github/anthropic/openai/hf/reddit/langchain/github_watch/openclaw/clawhub），输出格式化摘要，含标题栏 'AI News Digest'、各源分节（### Hacker News 等）、Footer（Sources 行），然后启动 news-learner 学习层（若有相关条目）。",
+      "expectations": [
+        "输出含标题行 'AI News Digest' 和当日日期，格式为 ━━━ 分隔线包裹",
+        "输出至少一个数据源分节标题（如 '### Hacker News' 或 '### arXiv cs.AI'）",
+        "Footer 含 'Sources:' 字段，列出本次成功抓取的源名称",
+        "执行了多源并行 curl 抓取（单次 Bash call，调用了 hn.algolia.com 等 API）",
+        "若检测到相关条目（relevant_items 非空），启动了 news-learner Agent 并输出等待提示含 '智能学习分析'"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/news-digest --no-learn",
+      "expected_output": "全源抓取并输出摘要，但在 Step 4 检测到 no_learn=True 后跳过 news-learner，输出 '[--no-learn] 已指定快速模式，跳过智能学习分析。'，不启动 Agent，整体执行时间明显短于默认模式。",
+      "expectations": [
+        "输出含标题行 'AI News Digest' 和 Footer Sources 字段",
+        "nd_params.json 中 no_learn 字段解析为 true（执行 Step 0 参数解析时输出 'no_learn=True'）",
+        "输出含 '[--no-learn] 已指定快速模式，跳过智能学习分析' 或等价提示",
+        "未启动任何 news-learner Agent（无 Agent tool call）",
+        "整体流程在 Step 3 输出摘要后即结束，不出现学习层等待提示"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/news-digest llm agent",
+      "expected_output": "全源抓取后，在 Step 2 对 topics=['llm','agent'] 执行关键词过滤（OR 逻辑），只保留标题或摘要包含 'llm' 或 'agent' 的条目；Footer 含 'Filtered by: llm agent'；输出条目均与 llm 或 agent 相关。",
+      "expectations": [
+        "Step 0 参数解析输出 'topics=['llm', 'agent']'",
+        "Step 2 过滤后输出含 '[过滤结果] 原始 N 条 → 过滤后 M 条'，M 小于 N（发生了过滤）",
+        "Footer 含 'Filtered by: llm agent' 字段",
+        "摘要中列出的每条条目标题或来源与 llm 或 agent 语义相关",
+        "输出整体结构完整（含标题行和至少一条摘要条目或'无相关条目'提示）"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "/news-digest --sources hn,arxiv --limit 3",
+      "expected_output": "仅抓取 hn 和 arxiv 两个源（每源最多 3 条），其他源跳过；输出只含 '### Hacker News' 和 '### arXiv cs.AI' 两节（arXiv 若为周末则标记 [SKIP-weekend]）；Footer Sources 字段只含 'hn arxiv'。",
+      "expectations": [
+        "Step 0 解析输出 'sources=['hn', 'arxiv'] limit=3'",
+        "curl 抓取仅执行了 hn 和 arxiv 两个源，未出现 github/anthropic/openai 等其他源的 curl 命令",
+        "输出的摘要分节仅含 Hacker News 和 arXiv（或 arXiv 的 [SKIP-weekend] 提示），不含其他源节",
+        "Footer Sources 字段仅列出 'hn' 和 'arxiv'（以及可能的 Skipped/Failed）",
+        "每源展示条目数不超过 3 条"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/news-digest mcp --sources anthropic,openai",
+      "expected_output": "仅抓取 anthropic 和 openai 两源，对 topics=['mcp'] 过滤后，将含 'mcp' 的条目作为 relevant_items 传入 news-learner；news-learner 输出的 Learning Opportunities 摘要中含有 [Adopt]、[Learn] 或 [Skip] 等推荐等级标签。",
+      "expectations": [
+        "Step 0 解析输出 'topics=['mcp'] sources=['anthropic', 'openai']'",
+        "若过滤后有相关条目，启动了 news-learner Agent（Agent tool call 存在）",
+        "news-learner 摘要输出含 'Learning Opportunities' 标题行",
+        "news-learner 输出的每条分析含 '[Adopt]'、'[Learn]'、'[Priority Adopt]' 或 '[Skip]' 推荐等级标签之一",
+        "若存在 [Adopt] 或 [Priority Adopt] 条目，输出末尾含 '⚡ 需要立即决策的条目' 决策提示块"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "/news-digest --sources invalid_xyz",
+      "expected_output": "Step 0 参数解析时检测到 'invalid_xyz' 不在有效源列表中，输出 [WARN] 含无效源名称和有效源列表；sources 解析结果为空列表（回退全源）或忽略无效值；不崩溃，继续执行全源或空源逻辑，最终输出摘要或友好提示。",
+      "expectations": [
+        "Step 0 输出含 '[WARN] 未知源：invalid_xyz' 和有效源列表提示",
+        "nd_params.json 中 sources 字段为空列表 [] 或不含 invalid_xyz",
+        "执行不崩溃，整体流程正常继续（回退全源抓取或输出无源提示）",
+        "不抛出未捕获异常，最终有格式化输出（摘要或空结果提示）"
+      ]
+    }
+  ]
+}
