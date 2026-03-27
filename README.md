@@ -29,7 +29,7 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 | `openclaw` | OpenClaw blog RSS |
 | `clawhub` | ClawHub latest skill updates |
 
-**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity. If more than 3 sources fail to return data, a `[诊断]` partial-failure warning is shown at the top; if more than 50% fail, a `⚠️ [严重警告]` alert is shown with troubleshooting steps.
+**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity. If more than 3 sources fail to return data, a `[Diagnosis]` partial-failure warning is shown at the top; if more than 50% fail, a `⚠️ [Critical Warning]` alert is shown with troubleshooting steps.
 
 **Step 3 — Output** a structured CLI digest:
 
@@ -179,15 +179,15 @@ cp agents/news-learner.md  ~/.claude/agents/
 ├── Step 1: Output start banner (est. time) → Bash: curl all sources → /tmp/nd_*.{json,xml,html}
 ├── Step 2: Bash — Python heredoc: parse → filter → deduplicate → relevance-tag
 │           writes /tmp/nd_deduped.json + /tmp/nd_relevant.json
-│           (⚠️ alert if >50% sources failed; [诊断] if >3 failed)
+│           (⚠️ alert if >50% sources failed; [Diagnosis] if >3 failed)
 ├── Step 3: Output formatted CLI digest
 │
 └── Step 4 (if /tmp/nd_relevant.json non-empty and --no-learn not set):
     └── news-learner (agent) ← receives relevant_items_path: /tmp/nd_relevant.json
-        ├── [进度 1/4] Reads ~/.claude/ descriptions to inventory platform capabilities
-        ├── [进度 2/4] Reads tech-watch.md history (if exists); fetches item content via curl
-        ├── [进度 3/4] Analyzes each item: problem → gap → recommendation level
-        ├── [进度 4/4] Writes [Learn] items → tech-watch.md (URL-deduplicated)
+        ├── [Step 1/4] Reads ~/.claude/ descriptions to inventory platform capabilities
+        ├── [Step 2/4] Reads tech-watch.md history (if exists); fetches item content via curl
+        ├── [Step 3/4] Analyzes each item: problem → gap → recommendation level
+        ├── [Step 4/4] Writes [Learn] items → tech-watch.md (URL-deduplicated)
         └── Returns interactive decision prompt for [Adopt]+ items
 ```
 
@@ -207,23 +207,23 @@ Running `/news-digest` without filters, the learning layer detected one `[Adopt]
 `news-learner` compared it against the platform's existing capabilities and found a **real gap**:
 
 ```
-核心能力: 运行时 agent 行为监控 — 检测意图漂移和规避行为
-我们现有: skill-review 仅做静态定义审查，无运行时动态行为监控
-推荐等级: [Adopt]
-采纳方案:
-  1. 创建 agent-monitor agent，读取任务 trace，对照四维检测清单生成告警
-  2. 创建 agent-monitoring pattern，指导协调者在高风险任务后触发监控
+Core capability: runtime agent behavior monitoring — detecting intent drift and evasion
+Current state:   skill-review only does static definition analysis; no runtime monitoring
+Recommendation:  [Adopt]
+Adoption plan:
+  1. Create agent-monitor agent: reads task trace, checks against four-signal checklist
+  2. Create agent-monitoring pattern: guides coordinators to trigger monitoring after high-risk tasks
 ```
 
 The decision prompt appeared at the end of the digest:
 
 ```
-⚡ 需要立即决策的条目（1 条）：
+⚡ Action required (1 item):
 
   1. [Adopt] How we monitor internal coding agents for misalignment
-     采纳方案：创建 agent-monitor agent，读取任务 trace，检测意图漂移和规避行为
+     Plan: create agent-monitor agent, read task trace, detect intent drift and evasion
 
-输入 1 立即执行，s 1 跳过，w 1 降级观察
+Enter 1 to act now, s 1 to skip, w 1 to downgrade to [Learn]
 ```
 
 ### What was built (user typed `1`)
@@ -255,24 +255,24 @@ This is the intended workflow: `/news-digest` surfaces what's worth knowing; `ne
 
 ### Evals
 
-`evals/evals.json` 包含 6 个测试用例，覆盖参数解析、数据抓取和学习层的主要路径：
+`evals/evals.json` contains 6 test cases covering argument parsing, data fetching, and the learning layer:
 
-| ID | 场景 | 验证重点 |
-|----|------|---------|
-| 1 | `/news-digest`（无参数完整运行）| 抓取全部 11 个来源，输出摘要，学习层正常执行 |
-| 2 | `/news-digest --no-learn` | 跳过 news-learner agent，仅输出新闻摘要 |
-| 3 | `/news-digest llm agent`（关键词过滤）| 仅展示标题或摘要含 `llm`/`agent` 的条目 |
-| 4 | `/news-digest --sources hn,hf --limit 3` | 仅抓取指定来源，每源最多 3 条 |
-| 5 | MCP/Jina 路径（环境变量 `JINA_API_KEY` 存在）| 优先使用 Jina MCP 工具抓取内容 |
-| 6 | 非法来源 ID | 输出错误提示，列出合法来源 ID，不抓取任何内容 |
+| ID | Scenario | What is verified |
+|----|----------|-----------------|
+| 1 | `/news-digest` (full run, no args) | Fetches all 11 sources, outputs digest, learning layer runs |
+| 2 | `/news-digest --no-learn` | Skips the news-learner agent; outputs news summary only |
+| 3 | `/news-digest llm agent` (keyword filter) | Only items matching `llm` or `agent` in title/summary are shown |
+| 4 | `/news-digest --sources hn,hf --limit 3` | Fetches only specified sources, max 3 items each |
+| 5 | MCP/Jina path (`JINA_API_KEY` env var present) | Jina MCP tool is used preferentially for content fetching |
+| 6 | Invalid source ID | Outputs error message listing valid source IDs; no fetch attempted |
 
-手动测试（在 Claude Code 会话中）：
+Manual testing (in a Claude Code session):
 ```bash
-/news-digest --no-learn     # 快速验证，对应 eval 2
-/news-digest llm            # 关键词过滤，对应 eval 3
+/news-digest --no-learn     # fast verification, eval 2
+/news-digest llm            # keyword filter, eval 3
 ```
 
-使用 skill-creator 的 eval loop 批量运行（如已安装）：
+Run all evals using skill-creator's eval loop (if installed):
 ```bash
 python ~/.claude/skills/skill-creator/scripts/run_loop.py \
   --skill-path ~/.claude/commands/news-digest.md \
