@@ -84,7 +84,7 @@ Claude Code 多源 AI 技术新闻摘要——从 11 个来源抓取、汇总最
 /plugin install news-digest@news-digest
 ```
 
-> **注**：`/plugin` 是 Claude Code REPL 内置命令，无法通过 `claude -p` 调用（返回 `Unknown skill: plugin`）。自动化测试流水线（skill-test 阶段 5）不覆盖此安装方式，需在 Claude Code 会话中手动执行。
+> ⚠️ **未经自动化验证**：`/plugin` 是 Claude Code REPL 内置命令，无法通过 `claude -p` 调用，需在 Claude Code 会话中手动执行；不在 skill-test 流水线（looper Stage 5）覆盖范围内。
 
 <!--
 ### 方式 B — npx（未发布，暂不可用）
@@ -113,12 +113,16 @@ cd news-digest
 CLAUDE_DIR=/custom ./install.sh   # 指定自定义 Claude 配置目录
 ```
 
+> ✅ **已验证**：已通过 skill-test 流水线自动化验证（looper Stage 5）。
+
 ### 方式 C — 手动
 
 ```bash
 cp commands/news-digest.md ~/.claude/commands/
 cp agents/news-learner.md  ~/.claude/agents/
 ```
+
+> ✅ **已验证**：已通过 skill-test 流水线自动化验证（looper Stage 5）。
 
 ---
 

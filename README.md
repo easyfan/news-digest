@@ -84,7 +84,7 @@ Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip
 /plugin install news-digest@news-digest
 ```
 
-> **Note**: `/plugin` is a Claude Code REPL built-in command and cannot be invoked via `claude -p` (returns `Unknown skill: plugin`). Automated test pipelines (skill-test Stage 5) do not cover this install path — run it manually in a Claude Code session.
+> ⚠️ **Not verified by automated tests**: `/plugin` is a Claude Code REPL built-in and cannot be invoked via `claude -p`. Run manually in a Claude Code session; not covered by skill-test pipeline (looper Stage 5).
 
 <!--
 ### Option B — npx (not yet published)
@@ -113,12 +113,16 @@ cd news-digest
 CLAUDE_DIR=/custom ./install.sh   # custom Claude config path
 ```
 
+> ✅ **Verified**: covered by the skill-test pipeline (looper Stage 5).
+
 ### Option C — manual
 
 ```bash
 cp commands/news-digest.md ~/.claude/commands/
 cp agents/news-learner.md  ~/.claude/agents/
 ```
+
+> ✅ **Verified**: covered by the skill-test pipeline (looper Stage 5).
 
 ---
 
