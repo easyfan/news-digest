@@ -251,6 +251,36 @@ This is the intended workflow: `/news-digest` surfaces what's worth knowing; `ne
 
 ---
 
+## Development
+
+### Evals
+
+`evals/evals.json` 包含 6 个测试用例，覆盖参数解析、数据抓取和学习层的主要路径：
+
+| ID | 场景 | 验证重点 |
+|----|------|---------|
+| 1 | `/news-digest`（无参数完整运行）| 抓取全部 11 个来源，输出摘要，学习层正常执行 |
+| 2 | `/news-digest --no-learn` | 跳过 news-learner agent，仅输出新闻摘要 |
+| 3 | `/news-digest llm agent`（关键词过滤）| 仅展示标题或摘要含 `llm`/`agent` 的条目 |
+| 4 | `/news-digest --sources hn,hf --limit 3` | 仅抓取指定来源，每源最多 3 条 |
+| 5 | MCP/Jina 路径（环境变量 `JINA_API_KEY` 存在）| 优先使用 Jina MCP 工具抓取内容 |
+| 6 | 非法来源 ID | 输出错误提示，列出合法来源 ID，不抓取任何内容 |
+
+手动测试（在 Claude Code 会话中）：
+```bash
+/news-digest --no-learn     # 快速验证，对应 eval 2
+/news-digest llm            # 关键词过滤，对应 eval 3
+```
+
+使用 skill-creator 的 eval loop 批量运行（如已安装）：
+```bash
+python ~/.claude/skills/skill-creator/scripts/run_loop.py \
+  --skill-path ~/.claude/commands/news-digest.md \
+  --evals-path evals/evals.json
+```
+
+---
+
 ## License
 
 MIT
