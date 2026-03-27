@@ -13,55 +13,55 @@ metadata:
 
 # news-digest
 
-多源 AI 技术新闻抓取 + 摘要 + 智能学习层分析。
+Multi-source AI news fetching, summarization, and intelligent learning layer analysis.
 
-## 安装
+## Install
 
 ```bash
-# 方式一：Claude Code 原生插件（发布后可用）
+# Option A: Claude Code plugin marketplace
 /plugin marketplace add easyfan/news-digest
 
-# 方式二：npx（无需克隆仓库）
+# Option B: npx (no clone needed)
 npx news-digest
 
-# 方式三：克隆后运行安装脚本
+# Option C: clone and run install script
 ./install.sh              # macOS / Linux
 .\install.ps1             # Windows
 
-# 方式四：手动复制
+# Option D: manual copy
 cp commands/news-digest.md ~/.claude/commands/
 cp agents/news-learner.md  ~/.claude/agents/
 ```
 
-## 用法
+## Usage
 
 ```
-/news-digest                          # 全源默认摘要（含学习层）
-/news-digest --no-learn               # 快速模式，仅摘要
-/news-digest llm agent                # 只看 LLM/Agent 相关
-/news-digest --sources hn,arxiv,hf    # 指定来源
-/news-digest --limit 10               # 每源最多 10 条
+/news-digest                          # full digest from all sources (with learning layer)
+/news-digest --no-learn               # fast mode — news only
+/news-digest llm agent                # filter by keyword
+/news-digest --sources hn,arxiv,hf    # specific sources only
+/news-digest --limit 10               # max 10 items per source
 /news-digest mcp --sources anthropic,openai
 ```
 
-## 数据源
+## Sources
 
-| 源 ID | 名称 | 说明 |
-|-------|------|------|
-| `hn` | Hacker News | 前端热帖 |
-| `arxiv` | arXiv cs.AI | AI 论文 |
-| `hf` | HuggingFace Daily Papers | 精选 AI 论文 |
-| `github` | GitHub Trending | 热门仓库 |
-| `anthropic` | Anthropic News | 官方动态 |
-| `openai` | OpenAI News | 官方动态 |
-| `reddit` | Reddit AI 社区 | r/MachineLearning + r/LocalLLaMA + r/agents |
-| `langchain` | LangChain Blog | 博客 RSS |
-| `github_watch` | GitHub 仓库动态 | 指定仓库 releases |
-| `openclaw` | OpenClaw Blog | OpenClaw 动态 |
-| `clawhub` | ClawHub Skills | 最新 skill 更新 |
+| Source ID | Name | Content |
+|-----------|------|---------|
+| `hn` | Hacker News | Front page posts |
+| `arxiv` | arXiv cs.AI | AI papers |
+| `hf` | HuggingFace Daily Papers | Curated AI papers |
+| `github` | GitHub Trending | Trending repositories |
+| `anthropic` | Anthropic News | Official updates |
+| `openai` | OpenAI News | Official updates |
+| `reddit` | Reddit AI communities | r/MachineLearning + r/LocalLLaMA + r/agents |
+| `langchain` | LangChain Blog | Blog RSS |
+| `github_watch` | GitHub repo watch | Tracked repository releases |
+| `openclaw` | OpenClaw Blog | OpenClaw updates |
+| `clawhub` | ClawHub Skills | Latest skill updates |
 
-## 依赖
+## Requirements
 
-- `curl`（系统自带）
-- `python3`（系统自带，用于 JSON/XML 解析）
+- `curl` (system)
+- `python3` (system — used for JSON/XML parsing)
 - Claude Code CLI
