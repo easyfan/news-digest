@@ -80,9 +80,15 @@ Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip
 ### Option A — Claude Code plugin (recommended)
 
 ```
-/plugin marketplace add easyfan/news-digest
+/plugin marketplace update news-digest
 /plugin install news-digest@news-digest
 ```
+
+> First time? Add the marketplace first:
+> ```
+> /plugin marketplace add easyfan/news-digest
+> /plugin install news-digest@news-digest
+> ```
 
 > ⚠️ **Not verified by automated tests**: `/plugin` is a Claude Code REPL built-in and cannot be invoked via `claude -p`. Run manually in a Claude Code session; not covered by skill-test pipeline (looper Stage 5).
 
@@ -161,6 +167,21 @@ cp agents/news-learner.md  ~/.claude/agents/
 │   └── news-digest.md    # /news-digest slash command
 └── agents/
     └── news-learner.md   # learning layer agent (called automatically)
+```
+
+### Package structure
+
+```
+news-digest/
+├── .claude-plugin/
+│   ├── plugin.json         # CC plugin manifest
+│   └── marketplace.json    # marketplace entry
+├── commands/news-digest.md
+├── agents/news-learner.md
+├── evals/evals.json
+├── install.sh
+├── install.ps1
+└── SKILL.md
 ```
 
 ---
