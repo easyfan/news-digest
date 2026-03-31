@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README-CN.md) | [Deutsch](README-de.md) | [Français](README-fr.md) | [Русский](README-ru.md)
+
 # news-digest
 
 Claude Code 多源 AI 技术新闻摘要——从 11 个来源抓取、汇总最新 AI 技术动态，并通过学习层提供智能分析。

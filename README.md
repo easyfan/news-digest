@@ -1,3 +1,5 @@
+[English](README.md) | [中文](README-CN.md) | [Deutsch](README-de.md) | [Français](README-fr.md) | [Русский](README-ru.md)
+
 # news-digest
 
 Multi-source AI news digest for Claude Code — fetches, summarizes, and learns from the latest AI technology news across 11 sources.
