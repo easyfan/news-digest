@@ -10,11 +10,6 @@
 
 set -euo pipefail
 
-# DEBUG: log invocation context
-echo "DEBUG CLAUDE_DIR=${CLAUDE_DIR:-unset} PWD=$PWD args=$*" >> /tmp/nd-install-debug.log
-env | grep -i claude >> /tmp/nd-install-debug.log 2>/dev/null || true
-echo "---" >> /tmp/nd-install-debug.log
-
 # ── Resolve real script dir (symlink-safe, same pattern as ecc) ──────────────
 SCRIPT_PATH="$0"
 while [ -L "$SCRIPT_PATH" ]; do
