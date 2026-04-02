@@ -55,6 +55,9 @@ DSTS=(
   "agents/news-learner.md"
 )
 
+SKILL_SRC="skills/news-digest"
+SKILL_DST="skills/news-digest"
+
 # ── Header ───────────────────────────────────────────────────────────────────
 echo ""
 echo "  news-digest — Claude Code plugin v$(grep '"version"' "$SCRIPT_DIR/package.json" | head -1 | grep -o '[0-9.]*')"
@@ -80,6 +83,13 @@ if $UNINSTALL; then
       skip "$(basename "$dst") (not found)"
     fi
   done
+  skill_dst="$CLAUDE_DIR/$SKILL_DST"
+  if [ -d "$skill_dst" ]; then
+    run rm -rf "$skill_dst"
+    ok "Removed $skill_dst"
+  else
+    skip "$SKILL_DST (not found)"
+  fi
   echo ""
   echo "  Uninstall complete."
   echo ""
@@ -107,6 +117,19 @@ for i in "${!SRCS[@]}"; do
     changed=$((changed + 1))
   fi
 done
+
+# ── Skill ─────────────────────────────────────────────────────────────────────
+skill_src="$SCRIPT_DIR/$SKILL_SRC"
+skill_dst="$CLAUDE_DIR/$SKILL_DST"
+if [ -f "$skill_dst/SKILL.md" ] && diff -q "$skill_src/SKILL.md" "$skill_dst/SKILL.md" &>/dev/null; then
+  skip "$SKILL_DST"
+else
+  [ -d "$skill_dst" ] && info "Updating  $SKILL_DST..." || info "Installing $SKILL_DST..."
+  run mkdir -p "$skill_dst"
+  run cp -r "$skill_src/." "$skill_dst/"
+  ok "$SKILL_DST → $skill_dst"
+  changed=$((changed + 1))
+fi
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 echo ""
