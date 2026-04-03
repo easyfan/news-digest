@@ -166,9 +166,12 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md    # /news-digest slash command
-└── agents/
-    └── news-learner.md   # learning layer agent (called automatically)
+│   └── news-digest.md      # /news-digest slash command
+├── agents/
+│   └── news-learner.md     # learning layer agent (called automatically)
+└── skills/
+    └── news-digest/
+        └── SKILL.md        # skill definition (used by looper T3 trigger test)
 ```
 
 ### Package structure
@@ -180,10 +183,12 @@ news-digest/
 │   └── marketplace.json    # marketplace entry
 ├── commands/news-digest.md
 ├── agents/news-learner.md
+├── skills/news-digest/
+│   └── SKILL.md
 ├── evals/evals.json
 ├── install.sh
 ├── install.ps1
-└── SKILL.md
+└── package.json
 ```
 
 ---

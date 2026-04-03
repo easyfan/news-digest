@@ -158,9 +158,12 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md    # commande slash /news-digest
-└── agents/
-    └── news-learner.md   # agent couche d'apprentissage (appelé automatiquement)
+│   └── news-digest.md      # commande slash /news-digest
+├── agents/
+│   └── news-learner.md     # agent couche d'apprentissage (appelé automatiquement)
+└── skills/
+    └── news-digest/
+        └── SKILL.md        # définition du skill (utilisée par le test de déclenchement looper T3)
 ```
 
 ### Structure du paquet
@@ -172,10 +175,12 @@ news-digest/
 │   └── marketplace.json    # entrée place de marché
 ├── commands/news-digest.md
 ├── agents/news-learner.md
+├── skills/news-digest/
+│   └── SKILL.md
 ├── evals/evals.json
 ├── install.sh
 ├── install.ps1
-└── SKILL.md
+└── package.json
 ```
 
 ---

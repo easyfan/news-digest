@@ -158,9 +158,12 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md    # slash-команда /news-digest
-└── agents/
-    └── news-learner.md   # агент слоя обучения (вызывается автоматически)
+│   └── news-digest.md      # slash-команда /news-digest
+├── agents/
+│   └── news-learner.md     # агент слоя обучения (вызывается автоматически)
+└── skills/
+    └── news-digest/
+        └── SKILL.md        # определение skill (используется тестом триггера looper T3)
 ```
 
 ### Структура пакета
@@ -172,10 +175,12 @@ news-digest/
 │   └── marketplace.json    # запись маркетплейса
 ├── commands/news-digest.md
 ├── agents/news-learner.md
+├── skills/news-digest/
+│   └── SKILL.md
 ├── evals/evals.json
 ├── install.sh
 ├── install.ps1
-└── SKILL.md
+└── package.json
 ```
 
 ---

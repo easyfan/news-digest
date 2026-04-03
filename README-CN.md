@@ -160,9 +160,12 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md    # /news-digest 命令
-└── agents/
-    └── news-learner.md   # 学习层 agent（自动调用）
+│   └── news-digest.md      # /news-digest 命令
+├── agents/
+│   └── news-learner.md     # 学习层 agent（自动调用）
+└── skills/
+    └── news-digest/
+        └── SKILL.md        # skill 定义（供 looper T3 触发测试使用）
 ```
 
 ---
