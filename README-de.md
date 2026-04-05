@@ -92,7 +92,14 @@ Empfehlungsstufen: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip]`
 > /plugin install news-digest@news-digest
 > ```
 
-> ⚠️ **Nicht durch automatisierte Tests verifiziert**: `/plugin` ist ein Claude Code REPL-Befehl und kann nicht via `claude -p` aufgerufen werden. Manuell in einer Claude Code-Sitzung ausführen; nicht durch die skill-test-Pipeline (looper Stage 5) abgedeckt.
+> ⚠️ **Teilweise durch automatisierte Tests abgedeckt**: Der zugrunde liegende `claude plugin install` CLI-Pfad wird durch looper T2b (Plan B) verifiziert. Der `/plugin` REPL-Einstiegspunkt (interaktive UI) kann nicht via `claude -p` getestet werden und muss manuell in einer Claude Code-Sitzung überprüft werden.
+
+> **Bei `ENAMETOOLONG`-Fehlern** ist der Plugin-Cache durch einen CC-Runtime-Bug beschädigt. Reparatur:
+> ```bash
+> git clone https://github.com/easyfan/news-digest && cd news-digest && bash install.sh
+> ```
+> Der Installer erkennt und repariert den beschädigten Cache automatisch.
+
 
 ### Option B — Installationsskript
 
@@ -272,6 +279,60 @@ Drei Dateien in derselben Sitzung erstellt:
 Die vollständige Schleife — Entdecken → Lücke analysieren → Entscheiden → Bauen — wurde in einer Sitzung abgeschlossen. `news-learner` identifizierte eine Fähigkeit, die der Plattform wirklich fehlte (Laufzeitüberwachung vs. statische Analyse), und der neue Agent war einsatzbereit, sobald der Benutzer `1` eingab.
 
 Das ist der beabsichtigte Workflow: `/news-digest` bringt hervor, was wissenswert ist; `news-learner` ordnet es Ihren tatsächlichen Lücken zu; die Entscheidungsaufforderung macht Adoption reibungslos.
+
+---
+
+## Praxisbeispiel: Modellversions-Upgrade während Pipeline-Test entdeckt
+
+Ein zweiter Realfall vom 2026-04-05, der während `/skill-test packer/news-digest` Stage 3 Verhaltensevaluation auftrat — zeigt, wie `news-learner` eine plattformrelevante Veröffentlichung im Digest aufgreift und eine konkrete Upgrade-Empfehlung ausspricht.
+
+### Was es auslöste
+
+Während des Stage-3-Eval-Durchlaufs rief `/news-digest` die offizielle Anthropic-Nachrichtenquelle ab und erhielt:
+
+> **„claude-sonnet-4.6 jetzt verfügbar"** — Anthropic offizielle Neuigkeiten
+> *Anthropic veröffentlichte claude-sonnet-4.6 (Model-ID: `claude-sonnet-4-6`), die neueste Sonnet-Generation mit verbessertem Reasoning und Tool-Use. Die vorherige Generation claude-sonnet-4.5 bleibt verfügbar, ist aber nicht mehr die empfohlene Standardversion für neue Deployments.*
+
+`news-learner` scannte die installierten Agents und Skills der Plattform und fand hartcodierte `sonnet`-Referenzen auf die vorherige Generation:
+
+```
+Kernfähigkeit: Modellversions-Aktualität — ob Agents/Skills das neueste empfohlene Sonnet nutzen
+Aktueller Stand: news-learner.md verwendet `model: sonnet` (blankes Alias, vom CC-Runtime aufgelöst;
+                 keine Versionsverankerung, keine Dokumentation ob bewusst gewählt)
+Empfehlung:  [Adopt]
+Umsetzungsplan:
+  1. Entscheidung: auf explizite Versions-ID pinnen oder blankes Alias mit dokumentierter Absicht behalten
+  2. Bei Pinning: model-Feld in betroffenen Agent-Dateien auf `claude-sonnet-4-6` aktualisieren
+  3. Bei Beibehaltung des Alias: Kommentar hinzufügen, der das bewusste Floating-Verhalten bestätigt
+```
+
+Am Ende des Digests erschien die Entscheidungsaufforderung:
+
+```
+⚡ Sofortige Entscheidung erforderlich (1 Eintrag):
+
+  1. [Adopt] claude-sonnet-4.6 veröffentlicht — news-learner verwendet noch blankes `sonnet`-Alias
+     Plan: auf claude-sonnet-4-6 pinnen oder Alias als bewusst dokumentieren
+
+1 eingeben zum sofortigen Handeln, s 1 zum Überspringen, w 1 zum Herabstufen
+```
+
+### Was passierte (Benutzer tippte `1`)
+
+Das blanke Alias `model: sonnet` war eine bewusste Entscheidung — CC löst es bei der Installation auf das neueste Sonnet auf, sodass ein „Auto-Upgrade" ohne Dateiänderungen erfolgt. Die Sitzung klärte diese Absicht und dokumentierte sie inline:
+
+```yaml
+# agents/news-learner.md (Frontmatter)
+model: sonnet   # bewusstes blankes Alias — wird bei CC-Installation auf neuestes Sonnet aufgelöst
+```
+
+Kein Dateiinhalt wurde wesentlich geändert; die Entscheidung wurde als bewusstes No-op mit Begründung festgehalten.
+
+### Warum das wichtig ist
+
+Dieser Fall zeigt eine andere Klasse von `[Adopt]`-Einträgen: keine Fähigkeitslücke, sondern eine **Wartungspositionsentscheidung**. `news-learner` hat die Veröffentlichung am Tag ihres Erscheinens aufgegriffen; der Plattformbetreiber musste sich entscheiden — pinnen oder floating — anstatt den Drift Wochen später passiv zu entdecken.
+
+Der Pipeline-Kontext (Stage 3 Eval) erhöhte den Signalwert über einen gewöhnlichen Digest-Lauf hinaus: Das Modellfeld des getesteten Agents war direkt betroffen und verwandelte eine beiläufige Release-Meldung in einen handlungsrelevanten Review-Punkt.
 
 ---
 

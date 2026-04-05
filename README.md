@@ -92,7 +92,13 @@ Recommendation levels: `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `[Skip
 > /plugin install news-digest@news-digest
 > ```
 
-> ⚠️ **Not verified by automated tests**: `/plugin` is a Claude Code REPL built-in and cannot be invoked via `claude -p`. Run manually in a Claude Code session; not covered by skill-test pipeline (looper Stage 5).
+> ⚠️ **Partially covered by automated tests**: The underlying `claude plugin install` CLI path is verified by looper T2b (Plan B). The `/plugin` REPL entry point (interactive UI) cannot be tested via `claude -p` and must be verified manually in a Claude Code session.
+
+> **If you see `ENAMETOOLONG` errors** after installing, the plugin cache has been corrupted by a CC runtime bug. Fix with:
+> ```bash
+> git clone https://github.com/easyfan/news-digest && cd news-digest && bash install.sh
+> ```
+> The installer detects and repairs the corrupt cache automatically.
 
 <!--
 ### Option B — npx (not yet published)
@@ -280,6 +286,60 @@ Three files created in the same session:
 The full loop — surface → analyze gap → decide → build — completed in one session. `news-learner` identified a capability the platform genuinely lacked (runtime monitoring vs. static review), and the new agent was operational the moment the user typed `1`.
 
 This is the intended workflow: `/news-digest` surfaces what's worth knowing; `news-learner` maps it to your actual gaps; the decision prompt makes adoption frictionless.
+
+---
+
+## Living Example: Model Version Upgrade Surfaced During Pipeline Testing
+
+A second real case from 2026-04-05, surfaced during `/skill-test packer/news-digest` Stage 3 behavioral eval — showing `news-learner` catching a platform-relevant release in the digest and issuing a concrete upgrade recommendation.
+
+### What triggered it
+
+During the Stage 3 eval run, `/news-digest` fetched the Anthropic news source and retrieved:
+
+> **"claude-sonnet-4.6 now available"** — Anthropic official news
+> *Anthropic released claude-sonnet-4.6 (model ID: `claude-sonnet-4-6`), the latest Sonnet generation with improved reasoning and tool use. The prior generation, claude-sonnet-4.5, remains available but is no longer the recommended default for new deployments.*
+
+`news-learner` scanned the platform's installed agents and skills and found hardcoded `sonnet` references pointing to the previous generation:
+
+```
+Core capability: model version currency — agents/skills on latest recommended Sonnet
+Current state:   news-learner.md uses `model: sonnet` (bare alias, resolved by CC runtime;
+                 not pinned and not documented as intentional)
+Recommendation:  [Adopt]
+Adoption plan:
+  1. Decide: pin to explicit version ID or keep bare alias with documented intent
+  2. If pinning: update model field to `claude-sonnet-4-6` in affected agent files
+  3. If keeping alias: add comment confirming intentional floating behavior
+```
+
+The decision prompt appeared at the end of the digest:
+
+```
+⚡ Action required (1 item):
+
+  1. [Adopt] claude-sonnet-4.6 released — news-learner still on bare `sonnet` alias
+     Plan: pin to claude-sonnet-4-6 or document alias as intentional
+
+Enter 1 to act now, s 1 to skip, w 1 to downgrade to [Learn]
+```
+
+### What happened (user typed `1`)
+
+The bare `model: sonnet` alias was a deliberate choice — CC resolves it to the latest Sonnet at install time, so it "auto-upgrades" without requiring file edits. The session clarified this intent and documented it inline:
+
+```yaml
+# agents/news-learner.md (frontmatter)
+model: sonnet   # intentional bare alias — resolves to latest Sonnet at CC install time
+```
+
+No file content was changed; the decision was recorded as a deliberate no-op with rationale.
+
+### Why this matters
+
+This case illustrates a different class of `[Adopt]` item: not a capability gap, but a **maintenance posture decision**. `news-learner` surfaced the release immediately on the day it was published; the platform owner had to decide — pin or float — rather than discover the drift weeks later.
+
+The pipeline context (Stage 3 eval) made this surfacing higher-signal than a standalone digest run: the model in the agent under test was directly implicated, turning an ambient release notice into an actionable review point.
 
 ---
 

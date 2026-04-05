@@ -92,7 +92,14 @@ Niveaux de recommandation : `[Priority Adopt]` → `[Adopt]` → `[Learn]` → `
 > /plugin install news-digest@news-digest
 > ```
 
-> ⚠️ **Non vérifié par des tests automatisés** : `/plugin` est un built-in REPL Claude Code et ne peut pas être invoqué via `claude -p`. À exécuter manuellement dans une session Claude Code ; non couvert par le pipeline skill-test (looper Stage 5).
+> ⚠️ **Partiellement couvert par des tests automatisés** : Le chemin CLI sous-jacent `claude plugin install` est vérifié par looper T2b (Plan B). Le point d'entrée REPL `/plugin` (interface interactive) ne peut pas être testé via `claude -p` et doit être vérifié manuellement dans une session Claude Code.
+
+> **En cas d'erreur `ENAMETOOLONG`**, le cache du plugin est corrompu par un bug du runtime CC. Réparer avec :
+> ```bash
+> git clone https://github.com/easyfan/news-digest && cd news-digest && bash install.sh
+> ```
+> L'installeur détecte et répare automatiquement le cache corrompu.
+
 
 ### Option B — Script d'installation
 
@@ -272,6 +279,60 @@ Trois fichiers créés dans la même session :
 La boucle complète — découverte → analyse du manque → décision → construction — s'est terminée en une seule session. `news-learner` a identifié une capacité que la plateforme n'avait vraiment pas (surveillance à l'exécution vs. analyse statique), et le nouvel agent était opérationnel dès que l'utilisateur a tapé `1`.
 
 C'est le workflow prévu : `/news-digest` fait remonter ce qui mérite d'être connu ; `news-learner` le mappe à vos manques réels ; l'invite de décision rend l'adoption sans friction.
+
+---
+
+## Exemple réel : mise à niveau de version de modèle découverte lors des tests de pipeline
+
+Un second cas réel du 2026-04-05, survenu lors de `/skill-test packer/news-digest` à l'étape 3 d'évaluation comportementale — montrant comment `news-learner` détecte une publication pertinente pour la plateforme et émet une recommandation de mise à niveau concrète.
+
+### Ce qui l'a déclenché
+
+Durant l'exécution de l'évaluation de l'étape 3, `/news-digest` a récupéré la source d'actualités officielle d'Anthropic et obtenu :
+
+> **« claude-sonnet-4.6 désormais disponible »** — Actualités officielles Anthropic
+> *Anthropic a publié claude-sonnet-4.6 (ID de modèle : `claude-sonnet-4-6`), la dernière génération Sonnet avec un meilleur raisonnement et une meilleure utilisation des outils. La génération précédente claude-sonnet-4.5 reste disponible, mais n'est plus la version par défaut recommandée pour les nouveaux déploiements.*
+
+`news-learner` a analysé les agents et skills installés sur la plateforme et a trouvé des références `sonnet` codées en dur pointant vers la génération précédente :
+
+```
+Capacité principale : actualité de la version du modèle — agents/skills sur le dernier Sonnet recommandé
+État actuel :  news-learner.md utilise `model: sonnet` (alias nu, résolu par le runtime CC ;
+               non épinglé, sans documentation sur le caractère intentionnel)
+Recommandation : [Adopt]
+Plan d'adoption :
+  1. Décision : épingler à un ID de version explicite ou conserver l'alias nu avec l'intention documentée
+  2. Si épinglage : mettre à jour le champ model vers `claude-sonnet-4-6` dans les fichiers d'agents concernés
+  3. Si conservation de l'alias : ajouter un commentaire confirmant le comportement flottant intentionnel
+```
+
+L'invite de décision est apparue à la fin du digest :
+
+```
+⚡ Action requise (1 élément) :
+
+  1. [Adopt] claude-sonnet-4.6 publié — news-learner utilise encore l'alias nu `sonnet`
+     Plan : épingler à claude-sonnet-4-6 ou documenter l'alias comme intentionnel
+
+Entrer 1 pour agir maintenant, s 1 pour ignorer, w 1 pour déclasser
+```
+
+### Ce qui s'est passé (l'utilisateur a tapé `1`)
+
+L'alias nu `model: sonnet` était un choix délibéré — CC le résout vers le dernier Sonnet à l'installation, permettant un « auto-upgrade » sans modifier les fichiers. La session a clarifié cette intention et l'a documentée en ligne :
+
+```yaml
+# agents/news-learner.md (frontmatter)
+model: sonnet   # alias nu intentionnel — résolu vers le dernier Sonnet lors de l'installation CC
+```
+
+Aucun contenu de fichier n'a été modifié substantiellement ; la décision a été enregistrée comme un no-op délibéré avec justification.
+
+### Pourquoi c'est important
+
+Ce cas illustre une autre classe d'éléments `[Adopt]` : non pas un manque de capacité, mais une **décision de posture de maintenance**. `news-learner` a fait remonter la publication le jour même de sa sortie ; le propriétaire de la plateforme devait décider — épingler ou flotter — plutôt que de découvrir la dérive des semaines plus tard.
+
+Le contexte du pipeline (étape 3 eval) a rendu ce signal plus pertinent qu'un simple digest ordinaire : le champ modèle de l'agent testé était directement impliqué, transformant une note de publication ambiante en un point de revue actionnable.
 
 ---
 

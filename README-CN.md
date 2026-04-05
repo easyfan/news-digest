@@ -86,7 +86,14 @@ Claude Code 多源 AI 技术新闻摘要——从 11 个来源抓取、汇总最
 /plugin install news-digest@news-digest
 ```
 
-> ⚠️ **未经自动化验证**：`/plugin` 是 Claude Code REPL 内置命令，无法通过 `claude -p` 调用，需在 Claude Code 会话中手动执行；不在 skill-test 流水线（looper Stage 5）覆盖范围内。
+> ⚠️ **部分自动化测试覆盖**：底层 `claude plugin install` CLI 路径已被 looper T2b（Plan B）验证。`/plugin` REPL 入口点（交互界面）无法通过 `claude -p` 测试，需在 Claude Code 会话中手动确认。
+
+> **如遇 `ENAMETOOLONG` 错误**，说明插件缓存因 CC runtime bug 损坏，执行以下命令修复：
+> ```bash
+> git clone https://github.com/easyfan/news-digest && cd news-digest && bash install.sh
+> ```
+> 安装脚本会自动检测并修复损坏的缓存。
+
 
 <!--
 ### 方式 B — npx（未发布，暂不可用）
@@ -257,6 +264,60 @@ cp agents/news-learner.md  ~/.claude/agents/
 从发现到分析缺口、决策、构建的完整循环在一个会话中完成。`news-learner` 识别出平台真实缺失的能力（运行时监控 vs. 静态审查），用户输入 `1` 后新 agent 即刻可用。
 
 这是预期工作流：`/news-digest` 推送值得关注的内容；`news-learner` 将其映射到实际缺口；决策提示让采纳零摩擦。
+
+---
+
+## 实际案例二：在流水线测试中发现模型版本升级
+
+第二个真实案例，发生于 2026-04-05 执行 `/skill-test packer/news-digest` Stage 3 行为评估期间——展示 `news-learner` 在摘要中捕获平台相关发布并给出具体升级建议的全过程。
+
+### 触发事件
+
+Stage 3 eval 运行期间，`/news-digest` 抓取了 Anthropic 官方新闻源，获取到以下条目：
+
+> **"claude-sonnet-4.6 现已发布"** — Anthropic 官方新闻
+> *Anthropic 发布 claude-sonnet-4.6（model ID：`claude-sonnet-4-6`），最新一代 Sonnet，推理能力和工具调用有所改进。上一代 claude-sonnet-4.5 仍可用，但不再是新部署的推荐默认版本。*
+
+`news-learner` 扫描平台已安装的 agents 和 skills，发现硬编码的 `sonnet` 引用指向上一代：
+
+```
+核心能力: 模型版本时效性 — agents/skills 是否使用最新推荐的 Sonnet
+我们现有: news-learner.md 使用 `model: sonnet`（裸别名，由 CC 运行时解析；
+          未锁定版本，也无注释说明是否为有意为之）
+推荐等级: [Adopt]
+采纳方案:
+  1. 决策：锁定明确版本 ID，还是保留裸别名并记录意图
+  2. 若锁定：将受影响的 agent 文件 model 字段更新为 `claude-sonnet-4-6`
+  3. 若保留别名：添加注释确认这是有意的浮动行为
+```
+
+摘要结束时出现决策提示：
+
+```
+⚡ 需要立即决策的条目（1 条）：
+
+  1. [Adopt] claude-sonnet-4.6 已发布 — news-learner 仍使用裸别名 `sonnet`
+     采纳方案：锁定至 claude-sonnet-4-6，或记录别名为有意行为
+
+输入 1 立即执行，s 1 跳过，w 1 降级观察
+```
+
+### 处理结果（用户输入 `1`）
+
+裸别名 `model: sonnet` 是刻意为之——CC 在安装时将其解析为最新 Sonnet，无需手动修改文件即可"自动升级"。本次会话厘清了这一意图并在文件内联注释中记录：
+
+```yaml
+# agents/news-learner.md（frontmatter）
+model: sonnet   # 有意使用裸别名 — CC 安装时自动解析为最新 Sonnet
+```
+
+文件内容未实质修改；该决策被记录为带有明确理由的有意 no-op。
+
+### 为何重要
+
+这个案例展示了另一类 `[Adopt]` 条目：不是能力缺口，而是**维护策略决策**。`news-learner` 在发布当天即刻浮现该版本；平台维护者需要明确选择——锁定还是浮动——而不是数周后才被动发现版本漂移。
+
+流水线上下文（Stage 3 eval）让这次浮现的价值高于普通摘要运行：被测 agent 的模型字段正是本次评估的直接关注点，将一条环境发布通知转化为一个可操作的审查节点。
 
 ---
 
