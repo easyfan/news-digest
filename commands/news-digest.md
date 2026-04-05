@@ -488,6 +488,20 @@ curl 完成后，输出进度提示：
 
 在独立的 Bash call 中执行以下过滤与相关性标记代码（Step 1 已将 items 写入 `/tmp/nd_items.json`，Step 2 从该文件读取，两段脚本解耦，进度提示可插入两者之间）：
 
+在执行过滤脚本前，先验证前置文件存在且 JSON 有效：
+
+```bash
+test -f /tmp/nd_items.json && echo "ITEMS_OK" || echo "ITEMS_MISSING"
+```
+
+若输出 `ITEMS_MISSING`，输出 `[过滤层] nd_items.json 未找到，跳过过滤与输出。` 后结束。
+
+```bash
+python3 -c "import json; r=json.load(open('/tmp/nd_items.json')); assert isinstance(r, list)" && echo "ITEMS_VALID" || echo "ITEMS_INVALID"
+```
+
+若输出 `ITEMS_INVALID`，输出 `[过滤层] nd_items.json 格式无效（非 JSON 数组），跳过过滤与输出。` 后结束。
+
 ```bash
 python3 - << 'PYEOF2'
 import json, difflib, sys
