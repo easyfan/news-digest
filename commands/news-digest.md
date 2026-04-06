@@ -74,7 +74,91 @@ echo "PLATFORM_ROOT=$PLATFORM_ROOT"
 [ -z "$ARGUMENTS" ] && echo "[INFO] \$ARGUMENTS 为空，使用默认参数（topics=[], limit=5, sources=全部）。"
 ```
 
-在解析参数完成后，输出执行开始提示（含学习层耗时说明）：
+在解析参数完成后，检测当前项目 profile 并写入 `/tmp/nd_profile.json`：
+
+```bash
+python3 - "$PROJECT_ROOT" << 'PROFILE_EOF'
+import json, os, sys
+
+project_root = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
+project_name = os.path.basename(project_root.rstrip('/'))
+
+# 内置 profile 配置（可被用户配置文件覆盖）
+BUILTIN_PROFILES = {
+    "thinking_of_memory": {
+        "display": "thinking_of_memory",
+        "focus": "学术论文、数据分析方法、统计建模、机器学习研究",
+        "extra_keywords": [
+            "data analysis", "statistical", "statistics", "methodology", "empirical",
+            "experiment", "dataset", "benchmark", "evaluation metric", "ablation",
+            "regression", "classification", "clustering", "time series", "causal",
+            "bayesian", "neural network", "transformer", "attention", "loss function",
+            "gradient", "training", "inference", "performance", "accuracy", "recall",
+            "precision", "f1", "auc", "roc", "cross-validation", "hyperparameter",
+            "memory", "retrieval", "knowledge graph", "embedding", "vector store",
+            "paper", "arxiv", "preprint", "survey", "review"
+        ],
+        "preferred_sources": ["arxiv", "hf", "reddit"],
+        "learner_instruction": "重点分析该条目的数据分析方法、实验设计、评估指标，以及对现有 memory/retrieval 系统设计的启发。"
+    },
+    "cc_manager": {
+        "display": "cc-manager",
+        "focus": "Claude Code harness、agent 编排、多智能体设计、MCP、工具调用",
+        "extra_keywords": [
+            "claude code", "harness", "agent orchestration", "multi-agent", "subagent",
+            "mcp", "model context protocol", "tool use", "tool calling", "function calling",
+            "agent design", "agent pattern", "agentic", "workflow automation",
+            "prompt engineering", "context window", "system prompt", "claude",
+            "anthropic", "hook", "plugin", "skill", "command", "slash command",
+            "orchestrator", "coordinator", "supervisor", "swarm", "a2a",
+            "agent-to-agent", "handoff", "delegation", "task routing",
+            "code generation", "coding agent", "swe-agent", "devin", "opencode",
+            "llm ops", "ai infrastructure", "inference", "latency", "token"
+        ],
+        "preferred_sources": ["anthropic", "hn", "github", "langchain", "clawhub"],
+        "learner_instruction": "重点分析该条目对 Claude Code harness 设计、agent 编排模式、skill/plugin 架构的借鉴价值，给出具体采纳方案。"
+    }
+}
+
+# 用 project_name 匹配（不区分大小写，- 和 _ 互换）
+def normalize(s):
+    return s.lower().replace('-', '_')
+
+matched_key = None
+for key in BUILTIN_PROFILES:
+    if normalize(project_name) == normalize(key):
+        matched_key = key
+        break
+
+# 读取用户自定义配置（~/.claude/news-digest-profiles.json）并合并
+user_cfg_path = os.path.expanduser('~/.claude/news-digest-profiles.json')
+user_profiles = {}
+if os.path.exists(user_cfg_path):
+    try:
+        user_profiles = json.load(open(user_cfg_path))
+        print(f'[profile] 已加载用户配置：{user_cfg_path}')
+    except Exception as e:
+        print(f'[profile] 用户配置解析失败，使用内置配置：{e}')
+
+all_profiles = {**BUILTIN_PROFILES, **user_profiles}
+
+if matched_key and matched_key in all_profiles:
+    profile = all_profiles[matched_key]
+    print(f'[profile] 检测到项目 "{project_name}"，启用 profile: {profile["display"]} — 关注方向：{profile["focus"]}')
+elif project_name in user_profiles:
+    matched_key = project_name
+    profile = user_profiles[project_name]
+    print(f'[profile] 用户自定义 profile: {profile["display"]} — 关注方向：{profile["focus"]}')
+else:
+    profile = {"display": "default", "focus": "通用 AI 技术", "extra_keywords": [], "preferred_sources": [], "learner_instruction": ""}
+    print(f'[profile] 未匹配项目 profile，使用默认模式（项目名：{project_name}）')
+    print(f'[profile] 如需自定义，创建 ~/.claude/news-digest-profiles.json，参考内置格式添加项目配置。')
+
+json.dump(profile, open('/tmp/nd_profile.json', 'w'))
+PROFILE_EOF
+```
+
+输出执行开始提示（含学习层耗时说明）：
 ```
 [INFO] 开始抓取新闻摘要（全源模式预计 20-40 秒）。
    学习层已启用：检测到相关条目后将额外运行 news-learner 分析（约 60-80 秒）。
@@ -512,10 +596,19 @@ items = json.load(open('/tmp/nd_items.json'))
 import json as _pj; _p = _pj.load(open('/tmp/nd_params.json')); TOPICS = _p.get('topics', []); SOURCES = set(_p.get('sources', []))
 SOURCE_RANK = {'anthropic': 5, 'openai': 4, 'arxiv': 3, 'hf': 3, 'github': 2, 'hn': 1, 'reddit': 1, 'langchain': 2, 'github_watch': 2, 'openclaw': 3, 'clawhub': 3}
 
-# ── 可自定义配置区 ────────────────────────────────────────────────────────────
-# RELEVANT_KW：命中任意关键词则将条目标记为相关（relevant=true），进入学习层分析。
-# 可根据个人关注领域增删关键词（大小写不敏感）。
-RELEVANT_KW = [
+# ── 读取项目 profile（Step 0 写入）────────────────────────────────────────────
+try:
+    _profile = json.load(open('/tmp/nd_profile.json'))
+except Exception:
+    _profile = {"display": "default", "extra_keywords": [], "preferred_sources": []}
+
+# profile 的 preferred_sources 提升权重（+2）
+for src in _profile.get('preferred_sources', []):
+    if src in SOURCE_RANK:
+        SOURCE_RANK[src] += 2
+
+# ── 基础关键词（通用 AI 技术，所有 profile 共用）─────────────────────────────
+BASE_RELEVANT_KW = [
     'agent', 'skill', 'mcp', 'tool use', 'workflow', 'orchestration', 'multi-agent',
     'langchain', 'langgraph', 'crewai', 'autogen', 'n8n', 'dify', 'llamaindex', 'haystack', 'cursor', 'copilot',
     'opencode', 'openclaw', 'clawhub', 'swe-agent', 'open-swe', 'devin', 'codex', 'computer use', 'agentic coding', 'coding agent',
@@ -524,7 +617,13 @@ RELEVANT_KW = [
     'llm', 'large language model', 'language model', 'gpt', 'claude', 'gemini', 'llama', 'mistral', 'mixtral', 'phi',
     'qwen', 'deepseek', 'embedding', 'alignment', 'rlhf', 'reinforcement learning',
 ]
-# ── 可自定义配置区结束 ─────────────────────────────────────────────────────────
+
+# profile 扩展关键词（项目特定，提升该领域内容被标记为 relevant 的概率）
+RELEVANT_KW = list(set(BASE_RELEVANT_KW + _profile.get('extra_keywords', [])))
+
+if _profile.get('display', 'default') != 'default':
+    print(f'[过滤层] 已启用 profile "{_profile["display"]}" 关键词扩展（+{len(_profile.get("extra_keywords",[]))} 词，共 {len(RELEVANT_KW)} 词）')
+# ── 关键词配置区结束 ───────────────────────────────────────────────────────────
 
 # 1. 关键词过滤
 if TOPICS:
@@ -674,6 +773,14 @@ echo "RELEVANT_ITEMS=$RELEVANT_ITEMS"
 > **数据通道说明**：`echo "RELEVANT_ITEMS=..."` 仅供日志可读，实际数据通道为 `/tmp/nd_relevant.json` 文件。
 > news-learner Step 2 直接读取该文件（`json.load(open('/tmp/nd_relevant.json'))`），不依赖 prompt 参数中的内联 JSON。
 
+然后通过 Bash 读取 profile 的 learner_instruction：
+```bash
+PROFILE_LEARNER_INSTRUCTION=$(python3 -c "import json; p=json.load(open('/tmp/nd_profile.json')); print(p.get('learner_instruction',''))")
+PROFILE_DISPLAY=$(python3 -c "import json; p=json.load(open('/tmp/nd_profile.json')); print(p.get('display','default'))")
+PROFILE_FOCUS=$(python3 -c "import json; p=json.load(open('/tmp/nd_profile.json')); print(p.get('focus','通用 AI 技术'))")
+echo "PROFILE=$PROFILE_DISPLAY FOCUS=$PROFILE_FOCUS"
+```
+
 然后启动 **`news-learner` agent**，传入：
 
 ```
@@ -681,6 +788,8 @@ relevant_items_path: /tmp/nd_relevant.json
 platform_root: {PLATFORM_ROOT}
 current_project: {CURRENT_PROJECT}
 scratch: {PROJECT_ROOT}/.claude/agent_scratch/nd_learning_{TODAY}.md
+project_profile: {PROFILE_DISPLAY}（关注方向：{PROFILE_FOCUS}）
+learner_instruction: {PROFILE_LEARNER_INSTRUCTION}（若为空则使用默认分析框架）
 ```
 
 等待 agent 返回摘要后，**追加到 Step 3 输出之后**，格式如 agent 定义中的 Step 6 摘要模板。学习层输出完成后，打印闭合分隔线：
