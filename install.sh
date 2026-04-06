@@ -58,6 +58,31 @@ DSTS=(
 SKILL_SRC="skills/news-digest"
 SKILL_DST="skills/news-digest"
 
+# ── Detect and fix corrupt plugin cache (ENAMETOOLONG recursive nesting) ──────
+# CC runtime bug: clones repo into cache/news-digest/ then copies it into
+# cache/news-digest/news-digest/<sha>/, causing infinite path nesting on next install.
+# Fix: remove stray files at cache root, keeping only the news-digest/<sha>/ subdir.
+CACHE_ROOT="$HOME/.claude/plugins/cache/news-digest"
+PLUGIN_SUBDIR="$CACHE_ROOT/news-digest"
+if [ -d "$CACHE_ROOT" ] && [ -f "$CACHE_ROOT/install.sh" ]; then
+  warn "Corrupt plugin cache detected at $CACHE_ROOT (git clone leaked to cache root)"
+  if [ -d "$PLUGIN_SUBDIR" ]; then
+    info "Fixing: preserving $PLUGIN_SUBDIR, removing stray files from cache root..."
+    if ! $DRY_RUN; then
+      tmp="$(mktemp -d)"
+      mv "$PLUGIN_SUBDIR" "$tmp/news-digest"
+      rm -rf "$CACHE_ROOT"
+      mkdir -p "$CACHE_ROOT"
+      mv "$tmp/news-digest" "$PLUGIN_SUBDIR"
+      rmdir "$tmp"
+    fi
+    ok "Plugin cache repaired"
+  else
+    warn "Versioned cache subdir not found — skipping auto-repair. You may need to reinstall via /plugin install."
+  fi
+  echo ""
+fi
+
 # ── Header ───────────────────────────────────────────────────────────────────
 echo ""
 echo "  news-digest — Claude Code plugin v$(grep '"version"' "$SCRIPT_DIR/package.json" | head -1 | grep -o '[0-9.]*')"

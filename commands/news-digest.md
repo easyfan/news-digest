@@ -158,14 +158,6 @@ json.dump(profile, open('/tmp/nd_profile.json', 'w'))
 PROFILE_EOF
 ```
 
-输出执行开始提示（含学习层耗时说明）：
-```
-[INFO] 开始抓取新闻摘要（全源模式预计 20-40 秒）。
-   学习层已启用：检测到相关条目后将额外运行 news-learner 分析（约 60-80 秒）。
-   如需跳过学习层：使用 /news-digest --no-learn（快速模式）
-```
-> 若解析出 no_learn=true，将上方"学习层已启用"行替换为：`[--no-learn] 快速模式，仅输出摘要，跳过学习层分析。`
-
 执行以下 Bash 命令解析 `$ARGUMENTS` 并写入 nd_params.json（`python3 - "$ARGUMENTS"` 将参数作为 `sys.argv[1]` 安全传入，避免 topics 含特殊字符时注入风险）：
 
 ```bash
@@ -210,6 +202,14 @@ if _ch:
 ARGS_PARSE_EOF
 python3 -c "import json; p=json.load(open('/tmp/nd_params.json')); assert all(k in p for k in ('limit','topics','sources','no_learn'))" && echo "nd_params.json OK" || { echo "[WARN] nd_params.json 写入验证失败，使用默认值（limit=5, topics=[], sources=全部, no_learn=false）"; python3 -c "import json; json.dump({'topics':[],'limit':5,'sources':[],'no_learn':False}, open('/tmp/nd_params.json','w'))"; }
 ```
+
+输出执行开始提示（含学习层耗时说明）：
+```
+[INFO] 开始抓取新闻摘要（全源模式预计 20-40 秒）。
+   学习层已启用：检测到相关条目后将额外运行 news-learner 分析（约 60-80 秒）。
+   如需跳过学习层：使用 /news-digest --no-learn（快速模式）
+```
+> 若解析出 no_learn=true，将上方"学习层已启用"行替换为：`[--no-learn] 快速模式，仅输出摘要，跳过学习层分析。`
 
 > `$ARGUMENTS` 通过 `sys.argv[1]` 安全传入 Python3，heredoc 标签使用单引号（不展开变量），Python3 用 `re` 解析所有参数字段并用 `json.dump()` 安全写出，彻底避免特殊字符注入风险。topics/sources 为空时自动为 `[]`，no_learn 字段已包含在 JSON 中供 Step 4 直接读取。
 
@@ -779,6 +779,7 @@ PROFILE_LEARNER_INSTRUCTION=$(python3 -c "import json; p=json.load(open('/tmp/nd
 PROFILE_DISPLAY=$(python3 -c "import json; p=json.load(open('/tmp/nd_profile.json')); print(p.get('display','default'))")
 PROFILE_FOCUS=$(python3 -c "import json; p=json.load(open('/tmp/nd_profile.json')); print(p.get('focus','通用 AI 技术'))")
 echo "PROFILE=$PROFILE_DISPLAY FOCUS=$PROFILE_FOCUS"
+echo "LEARNER_INSTRUCTION=$PROFILE_LEARNER_INSTRUCTION"
 ```
 
 然后启动 **`news-learner` agent**，传入：

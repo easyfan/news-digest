@@ -1,4 +1,4 @@
-[English](README.md) | [中文](README-CN.md) | [Deutsch](README-de.md) | [Français](README-fr.md) | [Русский](README-ru.md)
+[English](README.md) | [CN](README-CN.md) | [Deutsch](README-de.md) | [Français](README-fr.md) | [RU](README-ru.md)
 
 # news-digest
 
@@ -31,7 +31,29 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 | `openclaw` | OpenClaw blog RSS |
 | `clawhub` | ClawHub latest skill updates |
 
-**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity. If more than 3 sources fail to return data, a `[Diagnosis]` partial-failure warning is shown at the top; if more than 50% fail, a `⚠️ [Critical Warning]` alert is shown with troubleshooting steps.
+**Step 0 — Project profile detection**: automatically detects the current project directory and loads a matching content profile. Built-in profiles:
+
+| Project | Focus | Boosted sources |
+|---------|-------|-----------------|
+| `cc_manager` | Claude Code harness, agent orchestration, MCP, tool design | anthropic, hn, github, langchain, clawhub |
+| `thinking_of_memory` | Academic papers, data analysis methods, statistical modeling | arxiv, hf, reddit |
+
+Custom profiles can be added to `~/.claude/news-digest-profiles.json`:
+```json
+{
+  "my_project": {
+    "display": "my-project",
+    "focus": "description of focus area",
+    "extra_keywords": ["keyword1", "keyword2"],
+    "preferred_sources": ["arxiv", "hn"],
+    "learner_instruction": "How news-learner should frame its analysis for this project..."
+  }
+}
+```
+
+If no profile matches, a default mode is used with no filtering bias.
+
+**Step 2 — Filter & deduplicate** by keyword, source authority, and title similarity. Profile keywords and source weights are applied here. If more than 3 sources fail to return data, a `[Diagnosis]` partial-failure warning is shown at the top; if more than 50% fail, a `⚠️ [Critical Warning]` alert is shown with troubleshooting steps.
 
 **Step 3 — Output** a structured CLI digest:
 
@@ -213,18 +235,21 @@ news-digest/
 ```
 /news-digest (command coordinator)
 │
-├── Step 0: Bash — parse args → /tmp/nd_params.json (topics, sources, limit, no_learn)
+├── Step 0: Bash — detect project profile → /tmp/nd_profile.json
+│           parse args → /tmp/nd_params.json (topics, sources, limit, no_learn)
 ├── Step 1: Output start banner (est. time) → Bash: curl all sources → /tmp/nd_*.{json,xml,html}
 ├── Step 2: Bash — Python heredoc: parse → filter → deduplicate → relevance-tag
+│           profile extra_keywords merged into RELEVANT_KW
+│           profile preferred_sources get +2 SOURCE_RANK weight
 │           writes /tmp/nd_deduped.json + /tmp/nd_relevant.json
 │           (⚠️ alert if >50% sources failed; [Diagnosis] if >3 failed)
 ├── Step 3: Output formatted CLI digest
 │
 └── Step 4 (if /tmp/nd_relevant.json non-empty and --no-learn not set):
-    └── news-learner (agent) ← receives relevant_items_path: /tmp/nd_relevant.json
+    └── news-learner (agent) ← receives relevant_items_path, project_profile, learner_instruction
         ├── [Step 1/4] Reads ~/.claude/ descriptions to inventory platform capabilities
         ├── [Step 2/4] Reads tech-watch.md history (if exists); fetches item content via curl
-        ├── [Step 3/4] Analyzes each item: problem → gap → recommendation level
+        ├── [Step 3/4] Analyzes each item through profile lens: problem → gap → recommendation level
         ├── [Step 4/4] Writes [Learn] items → tech-watch.md (URL-deduplicated)
         └── Returns interactive decision prompt for [Adopt]+ items
 ```

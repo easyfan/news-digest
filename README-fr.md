@@ -31,7 +31,29 @@ Digest d'actualités IA multi-sources pour Claude Code — récupère, résume e
 | `openclaw` | RSS du blog OpenClaw |
 | `clawhub` | Dernières mises à jour des skills ClawHub |
 
-**Étape 2 — Filtrage & déduplication** par mot-clé, autorité de source et similarité de titre. Si plus de 3 sources ne retournent pas de données, un avertissement de défaillance partielle `[Diagnostic]` est affiché en haut ; si plus de 50% échouent, une alerte `⚠️ [Avertissement critique]` est affichée avec des étapes de dépannage.
+**Étape 0 — Détection du profil projet** : détecte automatiquement le répertoire du projet courant et charge un profil de contenu correspondant. Profils intégrés :
+
+| Projet | Axe | Sources boostées |
+|--------|-----|-----------------|
+| `cc_manager` | Claude Code harness, orchestration d'agents, MCP, conception d'outils | anthropic, hn, github, langchain, clawhub |
+| `thinking_of_memory` | Articles académiques, méthodes d'analyse de données, modélisation statistique | arxiv, hf, reddit |
+
+Des profils personnalisés peuvent être ajoutés dans `~/.claude/news-digest-profiles.json` :
+```json
+{
+  "my_project": {
+    "display": "my-project",
+    "focus": "description du domaine d'intérêt",
+    "extra_keywords": ["keyword1", "keyword2"],
+    "preferred_sources": ["arxiv", "hn"],
+    "learner_instruction": "Comment news-learner doit orienter son analyse pour ce projet..."
+  }
+}
+```
+
+Si aucun profil ne correspond, le mode par défaut est utilisé sans biais de filtrage.
+
+**Étape 2 — Filtrage & déduplication** par mot-clé, autorité de source et similarité de titre. Les mots-clés et pondérations de sources du profil sont appliqués ici. Si plus de 3 sources ne retournent pas de données, un avertissement de défaillance partielle `[Diagnostic]` est affiché en haut ; si plus de 50% échouent, une alerte `⚠️ [Avertissement critique]` est affichée avec des étapes de dépannage.
 
 **Étape 3 — Affichage** d'un digest CLI structuré :
 
@@ -206,18 +228,21 @@ news-digest/
 ```
 /news-digest (coordinateur de commande)
 │
-├── Étape 0 : Bash — analyser les args → /tmp/nd_params.json (topics, sources, limit, no_learn)
+├── Étape 0 : Bash — détecter le profil projet → /tmp/nd_profile.json
+│           analyser les args → /tmp/nd_params.json (topics, sources, limit, no_learn)
 ├── Étape 1 : Sortir bannière de démarrage (temps est.) → Bash : curl toutes sources → /tmp/nd_*.{json,xml,html}
 ├── Étape 2 : Bash — heredoc Python : parser → filtrer → dédupliquer → tag de pertinence
+│           extra_keywords du profil fusionnés dans RELEVANT_KW
+│           preferred_sources du profil reçoivent +2 de poids SOURCE_RANK
 │           écrit /tmp/nd_deduped.json + /tmp/nd_relevant.json
 │           (⚠️ alerte si >50% sources échouent ; [Diagnostic] si >3 échouent)
 ├── Étape 3 : Afficher le digest CLI formaté
 │
 └── Étape 4 (si /tmp/nd_relevant.json non vide et --no-learn non défini) :
-    └── news-learner (agent) ← reçoit relevant_items_path : /tmp/nd_relevant.json
+    └── news-learner (agent) ← reçoit relevant_items_path, project_profile, learner_instruction
         ├── [Étape 1/4] Lit les descriptions ~/.claude/ pour inventorier les capacités de la plateforme
         ├── [Étape 2/4] Lit l'historique tech-watch.md (si existant) ; récupère le contenu via curl
-        ├── [Étape 3/4] Analyse chaque élément : problème → manque → niveau de recommandation
+        ├── [Étape 3/4] Analyse chaque élément selon le prisme du profil : problème → manque → niveau de recommandation
         ├── [Étape 4/4] Écrit les éléments [Learn] → tech-watch.md (dédupliqué par URL)
         └── Retourne l'invite de décision interactive pour les éléments [Adopt]+
 ```

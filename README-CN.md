@@ -31,7 +31,29 @@ Claude Code 多源 AI 技术新闻摘要——从 11 个来源抓取、汇总最
 | `openclaw` | OpenClaw 博客 RSS |
 | `clawhub` | ClawHub 最新 skill 更新 |
 
-**步骤 2 — 过滤 & 去重**：按关键词、来源权重和标题相似度去重。若超过 3 个来源抓取失败，顶部显示 `[诊断]` 部分失败警告；若超过 50% 失败，显示 `⚠️ [严重警告]` 并附故障排查步骤。
+**步骤 0 — 项目 profile 检测**：自动检测当前项目目录并加载匹配的内容偏好配置。内置 profile：
+
+| 项目 | 关注方向 | 提权来源 |
+|------|---------|---------|
+| `cc_manager` | Claude Code harness、agent 编排、MCP、工具设计 | anthropic, hn, github, langchain, clawhub |
+| `thinking_of_memory` | 学术论文、数据分析方法、统计建模 | arxiv, hf, reddit |
+
+可在 `~/.claude/news-digest-profiles.json` 添加自定义 profile：
+```json
+{
+  "my_project": {
+    "display": "my-project",
+    "focus": "关注方向描述",
+    "extra_keywords": ["keyword1", "keyword2"],
+    "preferred_sources": ["arxiv", "hn"],
+    "learner_instruction": "学习层分析时的重点方向..."
+  }
+}
+```
+
+未匹配到 profile 时，使用默认模式，不带任何过滤偏好。
+
+**步骤 2 — 过滤 & 去重**：按关键词、来源权重和标题相似度去重。Profile 的额外关键词和来源权重在此步骤生效。若超过 3 个来源抓取失败，顶部显示 `[诊断]` 部分失败警告；若超过 50% 失败，显示 `⚠️ [严重警告]` 并附故障排查步骤。
 
 **步骤 3 — 输出**结构化 CLI 摘要：
 

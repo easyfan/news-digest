@@ -31,7 +31,16 @@ Mehrquelliger KI-Nachrichten-Digest für Claude Code — ruft die neuesten KI-Te
 | `openclaw` | OpenClaw Blog RSS |
 | `clawhub` | ClawHub neueste Skill-Updates |
 
-**Schritt 2 — Filtern & Deduplizieren** nach Stichwort, Quellengewichtung und Titelähnlichkeit. Wenn mehr als 3 Quellen keine Daten liefern, erscheint oben eine `[Diagnose]`-Teilausfallwarnung; wenn mehr als 50% ausfallen, ein `⚠️ [Kritische Warnung]`-Alert mit Fehlerbehebungsschritten.
+**Schritt 0 — Projektprofilerkennung**: Erkennt automatisch das aktuelle Projektverzeichnis und lädt das passende Inhaltsprofil. Integrierte Profile:
+
+| Projekt | Schwerpunkt | Höher gewichtete Quellen |
+|---------|------------|--------------------------|
+| `cc_manager` | Claude Code Harness, Agent-Orchestrierung, MCP, Tool-Design | anthropic, hn, github, langchain, clawhub |
+| `thinking_of_memory` | Wissenschaftliche Paper, Datenanalyse, statistische Modellierung | arxiv, hf, reddit |
+
+Eigene Profile in `~/.claude/news-digest-profiles.json` ergänzbar. Ohne passendes Profil läuft der Standardmodus ohne Filterbias.
+
+**Schritt 2 — Filtern & Deduplizieren** nach Stichwort, Quellengewichtung und Titelähnlichkeit. Profil-Keywords und Quellengewichtungen werden hier angewendet. Wenn mehr als 3 Quellen keine Daten liefern, erscheint oben eine `[Diagnose]`-Teilausfallwarnung; wenn mehr als 50% ausfallen, ein `⚠️ [Kritische Warnung]`-Alert mit Fehlerbehebungsschritten.
 
 **Schritt 3 — Ausgabe** eines strukturierten CLI-Digests:
 
