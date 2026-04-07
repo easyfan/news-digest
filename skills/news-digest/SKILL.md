@@ -1,8 +1,9 @@
 ---
 name: news-digest
 description: |
-  Use this skill when the user wants to fetch and summarize the latest AI technology news from multiple sources including Hacker News, arXiv, GitHub Trending, Anthropic, OpenAI, HuggingFace Daily Papers, Reddit, LangChain, GitHub Watch, OpenClaw, and ClawHub. Triggers on: "news digest", "latest AI news", "/news-digest", "tech news", "what's new in AI", "show me AI updates", "fetch news", "learning opportunities from news".
-  Includes an intelligent learning layer (news-learner agent) that analyzes relevant items, compares them against existing platform capabilities, and recommends adoption strategies.
+  从 HN、arXiv、GitHub Trending、Anthropic、OpenAI、HuggingFace 等多平台抓取 AI 技术新闻，生成摘要并通过 news-learner agent 分析与现有能力的差距，输出 [Adopt]/[Learn] 建议。
+  用于："/news-digest"、"看看最新 AI 新闻"、"今天有什么技术动态"、"抓一下新闻"、"AI 最近有什么进展"、"news digest"、"latest AI news"、"tech news"、"what's new in AI"。
+  支持 --no-learn（跳过学习层，仅摘要）和 --mode=cron（非交互批处理）。不适用于非 AI 领域新闻或单篇文章的解读。
 license: MIT
 metadata:
   version: "1.0.0"

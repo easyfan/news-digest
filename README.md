@@ -174,6 +174,7 @@ cp agents/news-learner.md  ~/.claude/agents/
 | `--sources` | Comma-separated source IDs (see table above) | all 11 sources |
 | `--limit N` | Max items per source | 5 |
 | `--no-learn` | Skip learning layer, output news only (~60–80 s saved) | off |
+| `--mode=cron` | Non-interactive batch mode: fetch, summarize, write to log, then exit without prompts | off |
 | `--channel` | Output channel (`cli` currently available; `slack`/`email`/`file` planned) | `cli` |
 
 **Examples:**

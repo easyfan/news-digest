@@ -167,6 +167,7 @@ cp agents/news-learner.md  ~/.claude/agents/
 | `--sources` | IDs de sources séparés par virgules (voir tableau ci-dessus) | les 11 sources |
 | `--limit N` | Nombre max d'éléments par source | 5 |
 | `--no-learn` | Ignorer la couche d'apprentissage, afficher uniquement les actualités (~60–80 s économisées) | désactivé |
+| `--mode=cron` | Mode batch non-interactif : récupérer, résumer, écrire dans le log puis quitter sans invite | désactivé |
 | `--channel` | Canal de sortie (`cli` disponible ; `slack`/`email`/`file` prévu) | `cli` |
 
 **Exemples :**

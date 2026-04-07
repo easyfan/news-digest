@@ -169,6 +169,7 @@ cp agents/news-learner.md  ~/.claude/agents/
 | `--sources` | 逗号分隔的来源 ID（见上表） | 全部 11 个来源 |
 | `--limit N` | 每个来源最多条数 | 5 |
 | `--no-learn` | 跳过学习层，仅输出新闻（节省约 60–80 秒） | 关 |
+| `--mode=cron` | 非交互批处理模式：抓取、汇总、写入日志后静默退出，不产生交互提示 | 关 |
 | `--channel` | 输出渠道（目前仅 `cli`；`slack`/`email`/`file` 计划中） | `cli` |
 
 **示例：**
