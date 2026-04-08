@@ -2,7 +2,7 @@
 
 # news-digest
 
-Digest d'actualités IA multi-sources pour Claude Code — récupère, résume et apprend des dernières actualités technologiques IA provenant de 11 sources.
+Digest d'actualités IA multi-sources pour Claude Code — récupère, résume et apprend des dernières actualités technologiques IA provenant de 12 sources.
 
 ```
 /news-digest                    # digest complet + couche d'apprentissage
@@ -15,7 +15,7 @@ Digest d'actualités IA multi-sources pour Claude Code — récupère, résume e
 
 ## Fonctionnement
 
-**Étape 1 — Notification & récupération** : affiche une bannière avec le temps estimé (20–40 s pour les actualités, +60–80 s avec la couche d'apprentissage) puis récupère depuis 11 sources en un seul appel Bash :
+**Étape 1 — Notification & récupération** : affiche une bannière avec le temps estimé (20–40 s pour les actualités, +60–80 s avec la couche d'apprentissage) puis récupère depuis 12 sources en un seul appel Bash :
 
 | Source | Contenu |
 |--------|---------|
@@ -30,6 +30,7 @@ Digest d'actualités IA multi-sources pour Claude Code — récupère, résume e
 | `github_watch` | Releases des dépôts suivis (openclaw, opencode…) |
 | `openclaw` | RSS du blog OpenClaw |
 | `clawhub` | Dernières mises à jour des skills ClawHub |
+| `devto` | Articles IA de DEV Community (tag:ai, plus réactionnés) |
 
 **Étape 0 — Détection du profil projet** : détecte automatiquement le répertoire du projet courant et charge un profil de contenu correspondant. Profils intégrés :
 

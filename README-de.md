@@ -2,7 +2,7 @@
 
 # news-digest
 
-Mehrquelliger KI-Nachrichten-Digest für Claude Code — ruft die neuesten KI-Technologienachrichten aus 11 Quellen ab, fasst sie zusammen und lernt daraus.
+Mehrquelliger KI-Nachrichten-Digest für Claude Code — ruft die neuesten KI-Technologienachrichten aus 12 Quellen ab, fasst sie zusammen und lernt daraus.
 
 ```
 /news-digest                    # Vollständiger Digest + Lernebene
@@ -15,7 +15,7 @@ Mehrquelliger KI-Nachrichten-Digest für Claude Code — ruft die neuesten KI-Te
 
 ## Funktionsweise
 
-**Schritt 1 — Benachrichtigung & Abruf**: Gibt ein Banner mit geschätzter Dauer aus (20–40 s für Nachrichten, +60–80 s mit Lernebene) und ruft dann in einem einzigen Bash-Aufruf aus 11 Quellen ab:
+**Schritt 1 — Benachrichtigung & Abruf**: Gibt ein Banner mit geschätzter Dauer aus (20–40 s für Nachrichten, +60–80 s mit Lernebene) und ruft dann in einem einzigen Bash-Aufruf aus 12 Quellen ab:
 
 | Quelle | Inhalt |
 |--------|--------|
@@ -30,6 +30,7 @@ Mehrquelliger KI-Nachrichten-Digest für Claude Code — ruft die neuesten KI-Te
 | `github_watch` | Verfolgte Repo-Releases (openclaw, opencode …) |
 | `openclaw` | OpenClaw Blog RSS |
 | `clawhub` | ClawHub neueste Skill-Updates |
+| `devto` | DEV Community KI-Artikel (tag:ai, meistgereagiert) |
 
 **Schritt 0 — Projektprofilerkennung**: Erkennt automatisch das aktuelle Projektverzeichnis und lädt das passende Inhaltsprofil. Integrierte Profile:
 

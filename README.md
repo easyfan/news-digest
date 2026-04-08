@@ -2,7 +2,7 @@
 
 # news-digest
 
-Multi-source AI news digest for Claude Code — fetches, summarizes, and learns from the latest AI technology news across 11 sources.
+Multi-source AI news digest for Claude Code — fetches, summarizes, and learns from the latest AI technology news across 12 sources.
 
 ```
 /news-digest                    # full digest + learning layer
@@ -15,7 +15,7 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 
 ## What it does
 
-**Step 1 — Notify & fetch**: outputs an estimated-time banner (20–40 s for news, +60–80 s with learning layer) and then fetches from 11 sources in a single Bash call:
+**Step 1 — Notify & fetch**: outputs an estimated-time banner (20–40 s for news, +60–80 s with learning layer) and then fetches from 12 sources in a single Bash call:
 
 | Source | What you get |
 |--------|-------------|
@@ -30,6 +30,7 @@ Multi-source AI news digest for Claude Code — fetches, summarizes, and learns 
 | `github_watch` | Tracked repo releases (openclaw, opencode…) |
 | `openclaw` | OpenClaw blog RSS |
 | `clawhub` | ClawHub latest skill updates |
+| `devto` | DEV Community AI articles (tag:ai, top reacted) |
 
 **Step 0 — Project profile detection**: automatically detects the current project directory and loads a matching content profile. Built-in profiles:
 
@@ -171,7 +172,7 @@ cp agents/news-learner.md  ~/.claude/agents/
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `topics` | Keyword filter — space-separated, OR logic | all items |
-| `--sources` | Comma-separated source IDs (see table above) | all 11 sources |
+| `--sources` | Comma-separated source IDs (see table above) | all 12 sources |
 | `--limit N` | Max items per source | 5 |
 | `--no-learn` | Skip learning layer, output news only (~60–80 s saved) | off |
 | `--mode=cron` | Non-interactive batch mode: fetch, summarize, write to log, then exit without prompts | off |
