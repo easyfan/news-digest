@@ -60,6 +60,7 @@ cp agents/news-learner.md  ~/.claude/agents/
 | `github_watch` | GitHub repo watch | Tracked repository releases |
 | `openclaw` | OpenClaw Blog | OpenClaw updates |
 | `clawhub` | ClawHub Skills | Latest skill updates |
+| `devto` | DEV Community | AI articles (tag:ai, top reacted) |
 
 ## Requirements
 

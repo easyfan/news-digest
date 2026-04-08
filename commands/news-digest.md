@@ -21,7 +21,7 @@ allowed-tools: ["Bash", "Agent"]
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `topics` | 关键词过滤（空格分隔，OR 逻辑；多词匹配任意一词即保留，不支持 AND 语义） | 无（全量） |
-| `--sources` | 逗号分隔：`hn` `arxiv` `github` `anthropic` `openai` `hf` `reddit` `langchain` `github_watch` `openclaw` `clawhub` | 全部 |
+| `--sources` | 逗号分隔：`hn` `arxiv` `github` `anthropic` `openai` `hf` `reddit` `langchain` `github_watch` `openclaw` `clawhub` `devto` | 全部 |
 | `--limit` | 每源最多展示条目数 | 5 |
 | `--channel` | 输出渠道（当前仅支持 `cli`（当前可用）；其他值如 `slack`/`email`/`file`/`gist` 为规划中功能，自动回退至 `cli`） | `cli` |
 | `--no-learn` | 跳过智能学习层，仅输出新闻摘要（快速模式，省 60-80 秒） | 关闭 |
@@ -45,6 +45,7 @@ allowed-tools: ["Bash", "Agent"]
 | `github_watch` | GitHub 指定仓库动态 | curl → GitHub Atom RSS | ✅ 稳定 | 跟踪 WATCHED_REPOS 列表的 releases/commits；无需 Token，公开仓库直接可用 |
 | `openclaw` | OpenClaw Blog | curl → RSS XML | ✅ 稳定 | `https://openclaw.ai/rss.xml`，OpenClaw/ClawHub 项目动态专源 |
 | `clawhub` | ClawHub Skills | curl → JSON API（多词搜索聚合）| ✅ 稳定 | `https://clawhub.ai/api/v1/search?q=X` 多词搜索（agent/mcp/code/git 等）取最近更新 skill；`/api/v1/skills` list 为 deprecated stub 不可用 |
+| `devto` | DEV Community | curl → JSON API | ✅ 稳定 | `https://dev.to/api/articles?tag=ai&per_page=N&top=1`，免费无需认证 |
 
 > **注意**：微信（需认证）不列入默认源。Reddit 改用官方 `.json` API，无需登录。
 > OpenAI News 源通过 jina.ai reader 代理抓取（`https://r.jina.ai/...`），自动绕过 Cloudflare，返回 Markdown 格式内容。
@@ -172,7 +173,7 @@ m = re.search(r'--limit\s+(\d+)', args)
 if m: limit = int(m.group(1))
 
 # 解析 --sources（大小写不敏感，自动转小写）
-VALID_SOURCES = {'hn','arxiv','github','anthropic','openai','hf','reddit','langchain','github_watch','openclaw','clawhub'}
+VALID_SOURCES = {'hn','arxiv','github','anthropic','openai','hf','reddit','langchain','github_watch','openclaw','clawhub','devto'}
 sources = []
 m = re.search(r'--sources\s+(\S+)', args)
 if m:
@@ -308,6 +309,11 @@ if [[ -z "$SOURCES" || " $SOURCES " =~ " github_watch " ]]; then
        -o "/tmp/nd_ghwatch_${slug}.xml" || echo '<feed></feed>' > "/tmp/nd_ghwatch_${slug}.xml") &
   done
 fi
+
+[[ -z "$SOURCES" || " $SOURCES " =~ " devto " ]] && \
+  (curl -s --max-time 15 \
+    "https://dev.to/api/articles?tag=ai&per_page=${LIMIT}&top=1" \
+    -o /tmp/nd_devto.json || echo '[]' > /tmp/nd_devto.json) &
 
 wait  # 等待所有并行抓取完成
 echo "FETCH_DONE"
@@ -513,6 +519,23 @@ if not SOURCES or 'clawhub' in SOURCES:
             })
     except Exception as e:
         print(f'[FETCH_FAILED] clawhub parse error: {e}', file=sys.stderr)
+
+# ── devto ────────────────────────────────────────────────
+if not SOURCES or 'devto' in SOURCES:
+    try:
+        data = json.load(open('/tmp/nd_devto.json'))
+        if not data:
+            print('[SKIP-no-content] DEV.to: 暂无内容', file=sys.stderr)
+        else:
+            for a in data[:LIMIT]:
+                title   = a.get('title', '').strip()
+                url     = a.get('url', '').strip()
+                snippet = (a.get('description') or '')[:200].strip()
+                metric  = a.get('positive_reactions_count', 0)
+                if title and url:
+                    items.append({'title': title, 'url': url, 'source': 'devto', 'snippet': snippet, 'metric': metric})
+    except Exception as e:
+        print(f'[FETCH_FAILED] devto parse error: {e}', file=sys.stderr)
 
 # ── github_watch（指定仓库 releases.atom）────────────────
 # WATCHED_REPOS 从 Bash 块写入的 /tmp/nd_watched_repos.json 读取（单一来源，无双重维护）
