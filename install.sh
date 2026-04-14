@@ -48,10 +48,30 @@ run()   { $DRY_RUN || "$@"; }
 # Using parallel arrays for bash 3.2 compatibility (macOS default)
 SRCS=(
   "commands/news-digest.md"
+  "commands/DESIGN.md"
+  "commands/scripts/detect_project_profile.py"
+  "commands/scripts/parse_arguments.py"
+  "commands/scripts/fetch_sources.sh"
+  "commands/scripts/parse_items.py"
+  "commands/scripts/filter_items.py"
+  "commands/scripts/archive_learn.py"
+  "commands/scripts/scan_platform.sh"
+  "commands/scripts/fetch_full_content.sh"
+  "commands/scripts/write_tech_watch.py"
   "agents/news-learner.md"
 )
 DSTS=(
   "commands/news-digest.md"
+  "commands/DESIGN.md"
+  "commands/scripts/detect_project_profile.py"
+  "commands/scripts/parse_arguments.py"
+  "commands/scripts/fetch_sources.sh"
+  "commands/scripts/parse_items.py"
+  "commands/scripts/filter_items.py"
+  "commands/scripts/archive_learn.py"
+  "commands/scripts/scan_platform.sh"
+  "commands/scripts/fetch_full_content.sh"
+  "commands/scripts/write_tech_watch.py"
   "agents/news-learner.md"
 )
 
@@ -115,6 +135,13 @@ if $UNINSTALL; then
   else
     skip "$SKILL_DST (not found)"
   fi
+  # Remove any empty directories left behind by file removal
+  for rel_dst in "${DSTS[@]}"; do
+    dir="$CLAUDE_DIR/$(dirname "$rel_dst")"
+    if [ -d "$dir" ] && [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+      run rmdir "$dir"
+    fi
+  done
   echo ""
   echo "  Uninstall complete."
   echo ""

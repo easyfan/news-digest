@@ -176,12 +176,23 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md      # /news-digest Slash-Befehl
+│   ├── news-digest.md          # /news-digest Slash-Befehl
+│   ├── DESIGN.md               # Datenquellen-Konfiguration und Designnotizen
+│   └── scripts/
+│       ├── detect_project_profile.py
+│       ├── parse_arguments.py
+│       ├── fetch_sources.sh
+│       ├── parse_items.py
+│       ├── filter_items.py
+│       ├── archive_learn.py
+│       ├── scan_platform.sh
+│       ├── fetch_full_content.sh
+│       └── write_tech_watch.py
 ├── agents/
-│   └── news-learner.md     # Lernebene-Agent (wird automatisch aufgerufen)
+│   └── news-learner.md         # Lernebene-Agent (wird automatisch aufgerufen)
 └── skills/
     └── news-digest/
-        └── SKILL.md        # Skill-Definition (für looper T3-Triggertest)
+        └── SKILL.md            # Skill-Definition (für looper T3-Triggertest)
 ```
 
 ### Paketstruktur
@@ -214,18 +225,21 @@ news-digest/
 
 ## Architektur
 
+Jeder Aufruf erzeugt ein eindeutiges `ND_SESSION`-Token; alle `/tmp`-IPC-Dateien werden als `/tmp/nd_{session}_*` isoliert — gleichzeitige `/news-digest`-Aufrufe können sich gegenseitig nicht stören.
+
 ```
 /news-digest (Befehlskoordinator)
 │
-├── Schritt 0: Bash — Parameter parsen → /tmp/nd_params.json (topics, sources, limit, no_learn)
-├── Schritt 1: Startbanner ausgeben (gesch. Zeit) → Bash: curl alle Quellen → /tmp/nd_*.{json,xml,html}
+├── Schritt 0: ND_SESSION erzeugen → Bash — Projektprofil erkennen → /tmp/nd_{session}_profile.json
+│           Parameter parsen → /tmp/nd_{session}_params.json (topics, sources, limit, no_learn)
+├── Schritt 1: Startbanner ausgeben (gesch. Zeit) → Bash: curl alle Quellen → /tmp/nd_{session}_*.{json,xml,html}
 ├── Schritt 2: Bash — Python-Heredoc: parsen → filtern → deduplizieren → Relevanz-Tag
-│           schreibt /tmp/nd_deduped.json + /tmp/nd_relevant.json
+│           schreibt /tmp/nd_{session}_deduped.json + /tmp/nd_{session}_relevant.json
 │           (⚠️ Alert wenn >50% Quellen fehlschlugen; [Diagnose] wenn >3 fehlschlugen)
 ├── Schritt 3: Formatierten CLI-Digest ausgeben
 │
-└── Schritt 4 (wenn /tmp/nd_relevant.json nicht leer und --no-learn nicht gesetzt):
-    └── news-learner (Agent) ← empfängt relevant_items_path: /tmp/nd_relevant.json
+└── Schritt 4 (wenn relevante Einträge vorhanden und --no-learn nicht gesetzt):
+    └── news-learner (Agent) ← empfängt relevant_items_path, project_profile, learner_instruction
         ├── [Schritt 1/4] ~/.claude/-Beschreibungen lesen, Plattformfähigkeiten inventarisieren
         ├── [Schritt 2/4] tech-watch.md-Verlauf lesen (falls vorhanden); Inhalt via curl abrufen
         ├── [Schritt 3/4] Jeden Eintrag analysieren: Problem → Lücke → Empfehlungsstufe

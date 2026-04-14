@@ -196,12 +196,23 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md      # /news-digest slash command
+│   ├── news-digest.md          # /news-digest slash command
+│   ├── DESIGN.md               # data source config & design notes (not loaded at runtime)
+│   └── scripts/
+│       ├── detect_project_profile.py
+│       ├── parse_arguments.py
+│       ├── fetch_sources.sh
+│       ├── parse_items.py
+│       ├── filter_items.py
+│       ├── archive_learn.py
+│       ├── scan_platform.sh
+│       ├── fetch_full_content.sh
+│       └── write_tech_watch.py
 ├── agents/
-│   └── news-learner.md     # learning layer agent (called automatically)
+│   └── news-learner.md         # learning layer agent (called automatically)
 └── skills/
     └── news-digest/
-        └── SKILL.md        # skill definition (used by looper T3 trigger test)
+        └── SKILL.md            # skill definition (used by looper T3 trigger test)
 ```
 
 ### Package structure
@@ -211,7 +222,19 @@ news-digest/
 ├── .claude-plugin/
 │   ├── plugin.json         # CC plugin manifest
 │   └── marketplace.json    # marketplace entry
-├── commands/news-digest.md
+├── commands/
+│   ├── news-digest.md
+│   ├── DESIGN.md
+│   └── scripts/            # bash/python implementations extracted from command
+│       ├── detect_project_profile.py
+│       ├── parse_arguments.py
+│       ├── fetch_sources.sh
+│       ├── parse_items.py
+│       ├── filter_items.py
+│       ├── archive_learn.py
+│       ├── scan_platform.sh
+│       ├── fetch_full_content.sh
+│       └── write_tech_watch.py
 ├── agents/news-learner.md
 ├── skills/news-digest/
 │   └── SKILL.md
@@ -234,20 +257,22 @@ news-digest/
 
 ## Architecture
 
+Each invocation generates a unique `ND_SESSION` token, and all `/tmp` IPC files are namespaced as `/tmp/nd_{session}_*` — concurrent `/news-digest` runs cannot interfere with each other.
+
 ```
 /news-digest (command coordinator)
 │
-├── Step 0: Bash — detect project profile → /tmp/nd_profile.json
-│           parse args → /tmp/nd_params.json (topics, sources, limit, no_learn)
-├── Step 1: Output start banner (est. time) → Bash: curl all sources → /tmp/nd_*.{json,xml,html}
+├── Step 0: generate ND_SESSION → Bash — detect project profile → /tmp/nd_{session}_profile.json
+│           parse args → /tmp/nd_{session}_params.json (topics, sources, limit, no_learn)
+├── Step 1: Output start banner (est. time) → Bash: curl all sources → /tmp/nd_{session}_*.{json,xml,html}
 ├── Step 2: Bash — Python heredoc: parse → filter → deduplicate → relevance-tag
 │           profile extra_keywords merged into RELEVANT_KW
 │           profile preferred_sources get +2 SOURCE_RANK weight
-│           writes /tmp/nd_deduped.json + /tmp/nd_relevant.json
+│           writes /tmp/nd_{session}_deduped.json + /tmp/nd_{session}_relevant.json
 │           (⚠️ alert if >50% sources failed; [Diagnosis] if >3 failed)
 ├── Step 3: Output formatted CLI digest
 │
-└── Step 4 (if /tmp/nd_relevant.json non-empty and --no-learn not set):
+└── Step 4 (if relevant items found and --no-learn not set):
     └── news-learner (agent) ← receives relevant_items_path, project_profile, learner_instruction
         ├── [Step 1/4] Reads ~/.claude/ descriptions to inventory platform capabilities
         ├── [Step 2/4] Reads tech-watch.md history (if exists); fetches item content via curl

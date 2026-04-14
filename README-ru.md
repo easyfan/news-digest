@@ -189,12 +189,23 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   └── news-digest.md      # slash-команда /news-digest
+│   ├── news-digest.md          # slash-команда /news-digest
+│   ├── DESIGN.md               # конфигурация источников и проектные заметки
+│   └── scripts/
+│       ├── detect_project_profile.py
+│       ├── parse_arguments.py
+│       ├── fetch_sources.sh
+│       ├── parse_items.py
+│       ├── filter_items.py
+│       ├── archive_learn.py
+│       ├── scan_platform.sh
+│       ├── fetch_full_content.sh
+│       └── write_tech_watch.py
 ├── agents/
-│   └── news-learner.md     # агент слоя обучения (вызывается автоматически)
+│   └── news-learner.md         # агент слоя обучения (вызывается автоматически)
 └── skills/
     └── news-digest/
-        └── SKILL.md        # определение skill (используется тестом триггера looper T3)
+        └── SKILL.md            # определение skill (используется тестом триггера looper T3)
 ```
 
 ### Структура пакета
@@ -227,20 +238,22 @@ news-digest/
 
 ## Архитектура
 
+Каждый вызов генерирует уникальный токен `ND_SESSION`; все IPC-файлы `/tmp` изолированы в пространстве имён `/tmp/nd_{session}_*` — параллельные запуски `/news-digest` не мешают друг другу.
+
 ```
 /news-digest (координатор команды)
 │
-├── Шаг 0: Bash — определение профиля проекта → /tmp/nd_profile.json
-│           разбор аргументов → /tmp/nd_params.json (topics, sources, limit, no_learn)
-├── Шаг 1: Вывод стартового баннера (оценка времени) → Bash: curl все источники → /tmp/nd_*.{json,xml,html}
+├── Шаг 0: генерация ND_SESSION → Bash — определение профиля проекта → /tmp/nd_{session}_profile.json
+│           разбор аргументов → /tmp/nd_{session}_params.json (topics, sources, limit, no_learn)
+├── Шаг 1: Вывод стартового баннера (оценка времени) → Bash: curl все источники → /tmp/nd_{session}_*.{json,xml,html}
 ├── Шаг 2: Bash — Python-heredoc: разбор → фильтрация → дедупликация → тег релевантности
 │           extra_keywords профиля добавляются в RELEVANT_KW
 │           preferred_sources профиля получают +2 к весу SOURCE_RANK
-│           записывает /tmp/nd_deduped.json + /tmp/nd_relevant.json
+│           записывает /tmp/nd_{session}_deduped.json + /tmp/nd_{session}_relevant.json
 │           (⚠️ alert если >50% источников не сработали; [Диагностика] если >3 не сработали)
 ├── Шаг 3: Вывод форматированного CLI-дайджеста
 │
-└── Шаг 4 (если /tmp/nd_relevant.json не пуст и --no-learn не установлен):
+└── Шаг 4 (если есть релевантные элементы и --no-learn не установлен):
     └── news-learner (агент) ← получает relevant_items_path, project_profile, learner_instruction
         ├── [Шаг 1/4] Читает описания ~/.claude/ для инвентаризации возможностей платформы
         ├── [Шаг 2/4] Читает историю tech-watch.md (если есть); загружает содержимое элементов через curl
