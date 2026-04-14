@@ -18,6 +18,7 @@ current_project: 当前项目在 platform_root/projects/ 下的目录名
 scratch: <协调者必传，如 /workspace/.claude/agent_scratch/nd_learning_{date}.md>
 project_profile: {display}（关注方向：{focus}）
 learner_instruction: {profile 专项分析指导，若为空则使用默认框架}
+cron_mode: true/false（true = 非交互批处理模式，Adopt+ 全部降级为 [Learn] 静默归档）
 ```
 
 ## 执行步骤
@@ -176,7 +177,9 @@ ENTRY_EOF
 
 若本次无 `[Learn]` 条目，跳过归档步骤。
 
-**Adopt+ 条目即时决策提示**（在摘要末尾追加）：
+**Adopt+ 条目处理**：
+
+- **`cron_mode=false`（交互模式，默认）**：在摘要末尾追加即时决策提示：
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -191,6 +194,12 @@ ENTRY_EOF
   s <编号>   跳过并记入历史（如 s 1）；s all 跳过全部
   w <编号>   降级为 [Learn] 归档到 tech-watch（如 w 2）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+- **`cron_mode=true`（批处理模式）**：**不输出** `⚡` 块，将所有 Adopt/Priority Adopt 条目自动降级为 `[Learn]`，同样调用 `write_tech_watch.py` 归档，归档时在 `ITEM_ENTRY` 中注明 `[cron降级]`。在摘要末尾追加：
+
+```
+[cron模式] {n} 条 [Adopt]+ 已自动降级为 [Learn] 并归档，下次交互时可在 tech-watch.md 中查看。
 ```
 
 > news-learner 只输出决策提示文本，实际执行（启动工具、归档 w N）由协调者（/news-digest）处理。

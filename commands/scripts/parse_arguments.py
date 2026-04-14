@@ -2,9 +2,7 @@
 # parse_arguments.py — 解析 $ARGUMENTS 字符串 → /tmp/nd_params.json
 # 用法：python3 parse_arguments.py "$ARGUMENTS"
 # 退出码：0=成功，1=失败
-import json, os, re, sys
-_S = os.environ.get('ND_SESSION', '')
-def _p(n): return f'/tmp/nd_{_S}_{n}' if _S else f'/tmp/nd_{n}'
+import json, re, sys
 
 args = sys.argv[1] if len(sys.argv) > 1 else ''
 
@@ -28,14 +26,18 @@ if m:
 # 解析 --no-learn
 no_learn = '--no-learn' in args
 
+# 解析 --mode=cron
+cron_mode = '--mode=cron' in args or re.search(r'--mode\s+cron', args) is not None
+
 # 解析 topics
 cleaned = re.sub(r'--(?:limit|sources|channel)\s+\S+', '', args)
+cleaned = re.sub(r'--mode(?:=\S+|\s+\S+)', '', cleaned)
 cleaned = re.sub(r'--no-learn', '', cleaned)
 topics = [w for w in cleaned.split() if w and not w.startswith('-')]
 
-json.dump({'topics': topics, 'limit': limit, 'sources': sources, 'no_learn': no_learn},
-          open(_p('params.json'), 'w'))
-print(f"PARAMS: topics={topics} limit={limit} sources={sources} no_learn={no_learn}")
+json.dump({'topics': topics, 'limit': limit, 'sources': sources, 'no_learn': no_learn, 'cron_mode': cron_mode},
+          open('/tmp/nd_params.json', 'w'))
+print(f"PARAMS: topics={topics} limit={limit} sources={sources} no_learn={no_learn} cron_mode={cron_mode}")
 
 # --channel 回退提示
 ch = re.search(r'--channel\s+(\S+)', args)
