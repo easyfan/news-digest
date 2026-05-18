@@ -46,35 +46,17 @@ run()   { $DRY_RUN || "$@"; }
 
 # ── Files to install: src relative to SCRIPT_DIR → dst relative to CLAUDE_DIR
 # Using parallel arrays for bash 3.2 compatibility (macOS default)
+# commands/news-digest.md is a thin wrapper; full logic lives in skills/news-digest/SKILL.md
 SRCS=(
   "commands/news-digest.md"
-  "commands/DESIGN.md"
-  "commands/scripts/detect_project_profile.py"
-  "commands/scripts/parse_arguments.py"
-  "commands/scripts/fetch_sources.sh"
-  "commands/scripts/parse_items.py"
-  "commands/scripts/filter_items.py"
-  "commands/scripts/archive_learn.py"
-  "commands/scripts/scan_platform.sh"
-  "commands/scripts/fetch_full_content.sh"
-  "commands/scripts/write_tech_watch.py"
   "agents/news-learner.md"
 )
 DSTS=(
   "commands/news-digest.md"
-  "commands/DESIGN.md"
-  "commands/scripts/detect_project_profile.py"
-  "commands/scripts/parse_arguments.py"
-  "commands/scripts/fetch_sources.sh"
-  "commands/scripts/parse_items.py"
-  "commands/scripts/filter_items.py"
-  "commands/scripts/archive_learn.py"
-  "commands/scripts/scan_platform.sh"
-  "commands/scripts/fetch_full_content.sh"
-  "commands/scripts/write_tech_watch.py"
   "agents/news-learner.md"
 )
 
+# skills/news-digest/ owns SKILL.md + scripts/ + DESIGN.md (canonical implementation)
 SKILL_SRC="skills/news-digest"
 SKILL_DST="skills/news-digest"
 

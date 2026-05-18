@@ -406,6 +406,14 @@ python ~/.claude/skills/skill-creator/scripts/run_loop.py \
 
 ---
 
+## История изменений
+
+### v1.3.0
+- **Архитектура**: рефакторинг по шаблону thin-wrapper — `commands/news-digest.md` теперь 6-строчная точка входа, делегирующая в `skills/news-digest/SKILL.md` (каноническая логика реализации)
+- **Связность директорий**: все файлы реализации (SKILL.md, scripts/, DESIGN.md) перенесены в `skills/news-digest/`
+
+---
+
 ## Лицензия
 
 MIT

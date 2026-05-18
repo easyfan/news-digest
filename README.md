@@ -196,23 +196,23 @@ cp agents/news-learner.md  ~/.claude/agents/
 ```
 ~/.claude/
 ├── commands/
-│   ├── news-digest.md          # /news-digest slash command
-│   ├── DESIGN.md               # data source config & design notes (not loaded at runtime)
-│   └── scripts/
-│       ├── detect_project_profile.py
-│       ├── parse_arguments.py
-│       ├── fetch_sources.sh
-│       ├── parse_items.py
-│       ├── filter_items.py
-│       ├── archive_learn.py
-│       ├── scan_platform.sh
-│       ├── fetch_full_content.sh
-│       └── write_tech_watch.py
+│   └── news-digest.md          # /news-digest slash command (thin wrapper → skills/)
 ├── agents/
 │   └── news-learner.md         # learning layer agent (called automatically)
 └── skills/
     └── news-digest/
-        └── SKILL.md            # skill definition (used by looper T3 trigger test)
+        ├── SKILL.md             # canonical coordinator logic (full implementation)
+        ├── DESIGN.md            # data source config & design notes
+        └── scripts/
+            ├── detect_project_profile.py
+            ├── parse_arguments.py
+            ├── fetch_sources.sh
+            ├── parse_items.py
+            ├── filter_items.py
+            ├── archive_learn.py
+            ├── scan_platform.sh
+            ├── fetch_full_content.sh
+            └── write_tech_watch.py
 ```
 
 ### Package structure
@@ -223,9 +223,12 @@ news-digest/
 │   ├── plugin.json         # CC plugin manifest
 │   └── marketplace.json    # marketplace entry
 ├── commands/
-│   ├── news-digest.md
+│   └── news-digest.md      # thin wrapper (delegates to skills/news-digest/SKILL.md)
+├── agents/news-learner.md
+├── skills/news-digest/
+│   ├── SKILL.md             # canonical coordinator (full implementation)
 │   ├── DESIGN.md
-│   └── scripts/            # bash/python implementations extracted from command
+│   └── scripts/             # bash/python implementations
 │       ├── detect_project_profile.py
 │       ├── parse_arguments.py
 │       ├── fetch_sources.sh
@@ -235,9 +238,6 @@ news-digest/
 │       ├── scan_platform.sh
 │       ├── fetch_full_content.sh
 │       └── write_tech_watch.py
-├── agents/news-learner.md
-├── skills/news-digest/
-│   └── SKILL.md
 ├── evals/evals.json
 ├── install.sh
 ├── install.ps1
@@ -422,6 +422,14 @@ python ~/.claude/skills/skill-creator/scripts/run_loop.py \
   --skill-path ~/.claude/commands/news-digest.md \
   --evals-path evals/evals.json
 ```
+
+---
+
+## Changelog
+
+### v1.3.0
+- **Architecture**: refactored to thin-wrapper pattern — `commands/news-digest.md` is now a 6-line entry point that delegates to `skills/news-digest/SKILL.md` (canonical coordinator logic)
+- **Directory cohesion**: all implementation files (SKILL.md, scripts/, DESIGN.md) consolidated under `skills/news-digest/`; scripts path updated from `commands/scripts/` to `skills/news-digest/scripts/`
 
 ---
 

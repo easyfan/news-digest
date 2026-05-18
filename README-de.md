@@ -391,6 +391,14 @@ python ~/.claude/skills/skill-creator/scripts/run_loop.py \
 
 ---
 
+## Änderungsprotokoll
+
+### v1.3.0
+- **Architektur**: Refactoring auf Thin-Wrapper-Muster — `commands/news-digest.md` ist jetzt ein 6-zeiliger Einstiegspunkt, der an `skills/news-digest/SKILL.md` delegiert (vollständige Implementierungslogik)
+- **Verzeichniskohäsion**: Alle Implementierungsdateien (SKILL.md, scripts/, DESIGN.md) in `skills/news-digest/` konsolidiert
+
+---
+
 ## Lizenz
 
 MIT

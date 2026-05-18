@@ -389,6 +389,14 @@ python ~/.claude/skills/skill-creator/scripts/run_loop.py \
 
 ---
 
+## 更新日志
+
+### v1.3.0
+- **架构重构**：采用 thin-wrapper 模式——`commands/news-digest.md` 改为 6 行入口文件，委托 `skills/news-digest/SKILL.md` 承载完整执行逻辑
+- **目录内聚**：所有实现文件（SKILL.md、scripts/、DESIGN.md）统一迁移至 `skills/news-digest/`
+
+---
+
 ## 许可证
 
 MIT
